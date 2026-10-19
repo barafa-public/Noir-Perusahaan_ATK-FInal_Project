@@ -1,0 +1,22 @@
+project_id = "noir"
+
+[functions.auth]
+verify_jwt = false
+
+[functions.products]
+verify_jwt = false
+
+[functions.orders]
+verify_jwt = false
+
+[functions.sales]
+verify_jwt = false
+
+[functions.blocks]
+verify_jwt = false
+
+[functions.feedback]
+verify_jwt = false
+
+[functions.ai-chat]
+verify_jwt = false
