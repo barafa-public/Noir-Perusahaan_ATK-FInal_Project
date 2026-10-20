@@ -4,6 +4,8 @@ class OrderStatus {
   static const String processing = 'Diproses';
   static const String done = 'Selesai';
   static const String cancelled = 'Dibatalkan';
+
+  static const List<String> all = [ordered, processing, done, cancelled];
 }
 
 class OrderItemModel {
@@ -22,12 +24,12 @@ class OrderItemModel {
   });
 
   factory OrderItemModel.fromJson(Map<String, dynamic> j) => OrderItemModel(
-    productId: j['product_id'] as String,
-    productName: j['product_name'] as String,
-    unitPrice: (j['unit_price'] as num).toInt(),
-    qty: (j['qty'] as num).toInt(),
-    subtotal: (j['subtotal'] as num).toInt(),
-  );
+        productId: j['product_id'] as String,
+        productName: j['product_name'] as String,
+        unitPrice: (j['unit_price'] as num).toInt(),
+        qty: (j['qty'] as num).toInt(),
+        subtotal: (j['subtotal'] as num).toInt(),
+      );
 }
 
 class OrderModel {
@@ -41,6 +43,11 @@ class OrderModel {
   final String updatedAt;
   final List<OrderItemModel> items; // kosong pada daftar (tanpa detail)
 
+  /// Hanya terisi untuk User internal.
+  final String? customerName;
+  final String? customerUsername;
+  final String? processedByName;
+
   const OrderModel({
     required this.id,
     required this.orderNo,
@@ -51,20 +58,30 @@ class OrderModel {
     required this.createdAt,
     required this.updatedAt,
     this.items = const [],
+    this.customerName,
+    this.customerUsername,
+    this.processedByName,
   });
 
-  factory OrderModel.fromJson(Map<String, dynamic> j) => OrderModel(
-    id: j['id'] as String,
-    orderNo: j['order_no'] as String,
-    status: j['status'] as String,
-    total: (j['total'] as num).toInt(),
-    note: j['note'] as String?,
-    cancelReason: j['cancel_reason'] as String?,
-    createdAt: j['created_at'] as String,
-    updatedAt: j['updated_at'] as String,
-    items: ((j['order_items'] as List?) ?? const [])
-        .cast<Map<String, dynamic>>()
-        .map(OrderItemModel.fromJson)
-        .toList(),
-  );
+  factory OrderModel.fromJson(Map<String, dynamic> j) {
+    final customer = j['customer'] as Map<String, dynamic>?;
+    final processor = j['processor'] as Map<String, dynamic>?;
+    return OrderModel(
+      id: j['id'] as String,
+      orderNo: j['order_no'] as String,
+      status: j['status'] as String,
+      total: (j['total'] as num).toInt(),
+      note: j['note'] as String?,
+      cancelReason: j['cancel_reason'] as String?,
+      createdAt: j['created_at'] as String,
+      updatedAt: j['updated_at'] as String,
+      items: ((j['order_items'] as List?) ?? const [])
+          .cast<Map<String, dynamic>>()
+          .map(OrderItemModel.fromJson)
+          .toList(),
+      customerName: customer?['full_name'] as String?,
+      customerUsername: customer?['username'] as String?,
+      processedByName: processor?['full_name'] as String?,
+    );
+  }
 }
