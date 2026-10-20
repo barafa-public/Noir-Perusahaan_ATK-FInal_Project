@@ -8,6 +8,10 @@ import '../home/customer_home_screen.dart';
 import '../home/internal_home_screen.dart';
 import '../profile/profile_screen.dart';
 
+import 'dart:async';
+
+import '../../services/sync_service.dart';
+
 class _NavTab {
   final String label;
   final IconData icon;
@@ -62,6 +66,9 @@ class _MainShellState extends State<MainShell> {
     if (user != null) {
       ProfilePhotoService.instance.load(user.id);
     }
+    unawaited(
+      SyncService.instance.syncAll().then((r) => debugPrint(r.toString())),
+    );
   }
 
   /// Empat tab wajib (Beranda, Produk, Saran & Kesan, Profil) ditambah
@@ -72,8 +79,9 @@ class _MainShellState extends State<MainShell> {
         label: 'Beranda',
         icon: Icons.home_outlined,
         selectedIcon: Icons.home_rounded,
-        page:
-            internal ? const InternalHomeScreen() : const CustomerHomeScreen(),
+        page: internal
+            ? const InternalHomeScreen()
+            : const CustomerHomeScreen(),
       ),
       _NavTab(
         label: 'Produk',
@@ -133,11 +141,13 @@ class _MainShellState extends State<MainShell> {
         selectedIndex: _index,
         onDestinationSelected: (i) => setState(() => _index = i),
         destinations: _tabs
-            .map((t) => NavigationDestination(
-                  icon: Icon(t.icon),
-                  selectedIcon: Icon(t.selectedIcon),
-                  label: t.label,
-                ))
+            .map(
+              (t) => NavigationDestination(
+                icon: Icon(t.icon),
+                selectedIcon: Icon(t.selectedIcon),
+                label: t.label,
+              ),
+            )
             .toList(),
       ),
     );
