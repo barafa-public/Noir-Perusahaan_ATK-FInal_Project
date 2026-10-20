@@ -4,6 +4,10 @@
 <dict>
 	<key>NSFaceIDUsageDescription</key>
 	<string>Noir menggunakan Face ID untuk login lebih cepat.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Noir memerlukan akses galeri untuk memilih foto profil.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Noir memerlukan kamera untuk mengambil foto profil.</string>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>

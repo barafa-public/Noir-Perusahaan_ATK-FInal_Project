@@ -1,71 +1,144 @@
 import 'package:flutter/material.dart';
 
-import '../../core/constants/app_colors.dart';
-import '../../core/constants/app_constants.dart';
 import '../../services/auth_service.dart';
-import '../../widgets/noir_logo.dart';
-import '../../widgets/role_gate.dart';
+import '../../services/profile_photo_service.dart';
+import '../../widgets/empty_state.dart';
+import '../feedback/feedback_screen.dart';
+import '../home/customer_home_screen.dart';
+import '../home/internal_home_screen.dart';
 import '../profile/profile_screen.dart';
 
-class MainShell extends StatelessWidget {
-  const MainShell({super.key});
+class _NavTab {
+  final String label;
+  final IconData icon;
+  final IconData selectedIcon;
+  final Widget page;
+
+  const _NavTab({
+    required this.label,
+    required this.icon,
+    required this.selectedIcon,
+    required this.page,
+  });
+}
+
+/// Halaman kosong sementara untuk fitur yang dibangun di sprint berikutnya.
+class _ComingSoon extends StatelessWidget {
+  final String title;
+  final IconData icon;
+  final String message;
+
+  const _ComingSoon({
+    required this.title,
+    required this.icon,
+    required this.message,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final user = AuthService.instance.user;
-
     return Scaffold(
-      appBar: AppBar(title: const NoirLogo(width: 88)),
-      body: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Halo, ${user?.fullName ?? '-'}',
-              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              '@${user?.username ?? '-'}  •  role: ${user?.role ?? '-'}',
-              style: const TextStyle(color: AppColors.textSecondary),
-            ),
-            const SizedBox(height: 24),
-            FilledButton(
-              onPressed: () => Navigator.of(
-                context,
-              ).push(MaterialPageRoute(builder: (_) => const ProfileScreen())),
-              child: const Text('Buka Profil'),
-            ),
-            const SizedBox(height: 12),
-            // Demo RoleGate: hanya terlihat oleh User internal.
-            const RoleGate(
-              allowed: [Roles.internal],
-              child: Card(
-                child: ListTile(
-                  leading: Icon(
-                    Icons.inventory_2_outlined,
-                    color: AppColors.yellow,
-                  ),
-                  title: Text('Menu khusus User internal'),
-                ),
-              ),
-            ),
-            // Demo RoleGate: hanya terlihat oleh Customer.
-            const RoleGate(
-              allowed: [Roles.customer],
-              child: Card(
-                child: ListTile(
-                  leading: Icon(
-                    Icons.shopping_cart_outlined,
-                    color: AppColors.yellow,
-                  ),
-                  title: Text('Menu khusus Customer'),
-                ),
-              ),
-            ),
-          ],
+      appBar: AppBar(title: Text(title)),
+      body: EmptyState(icon: icon, title: 'Segera hadir', message: message),
+    );
+  }
+}
+
+class MainShell extends StatefulWidget {
+  const MainShell({super.key});
+
+  @override
+  State<MainShell> createState() => _MainShellState();
+}
+
+class _MainShellState extends State<MainShell> {
+  int _index = 0;
+  late final List<_NavTab> _tabs;
+
+  @override
+  void initState() {
+    super.initState();
+    final user = AuthService.instance.user;
+    _tabs = _buildTabs(user?.isInternal ?? false);
+    if (user != null) {
+      ProfilePhotoService.instance.load(user.id);
+    }
+  }
+
+  /// Empat tab wajib (Beranda, Produk, Saran & Kesan, Profil) ditambah
+  /// satu tab khusus role: Pesanan (Customer) atau Transaksi (User internal).
+  List<_NavTab> _buildTabs(bool internal) {
+    return [
+      _NavTab(
+        label: 'Beranda',
+        icon: Icons.home_outlined,
+        selectedIcon: Icons.home_rounded,
+        page:
+            internal ? const InternalHomeScreen() : const CustomerHomeScreen(),
+      ),
+      _NavTab(
+        label: 'Produk',
+        icon: Icons.inventory_2_outlined,
+        selectedIcon: Icons.inventory_2_rounded,
+        page: _ComingSoon(
+          title: internal ? 'Produk & Stok' : 'Produk',
+          icon: Icons.inventory_2_outlined,
+          message: 'Daftar produk dikerjakan di Sprint 2.',
         ),
+      ),
+      if (internal)
+        const _NavTab(
+          label: 'Transaksi',
+          icon: Icons.receipt_long_outlined,
+          selectedIcon: Icons.receipt_long_rounded,
+          page: _ComingSoon(
+            title: 'Transaksi',
+            icon: Icons.receipt_long_outlined,
+            message: 'Pesanan masuk dan penjualan dikerjakan di Sprint 3.',
+          ),
+        )
+      else
+        const _NavTab(
+          label: 'Pesanan',
+          icon: Icons.shopping_bag_outlined,
+          selectedIcon: Icons.shopping_bag_rounded,
+          page: _ComingSoon(
+            title: 'Pesanan Saya',
+            icon: Icons.shopping_bag_outlined,
+            message: 'Keranjang dan pesanan dikerjakan di Sprint 2.',
+          ),
+        ),
+      const _NavTab(
+        label: 'Saran',
+        icon: Icons.rate_review_outlined,
+        selectedIcon: Icons.rate_review_rounded,
+        page: FeedbackScreen(),
+      ),
+      const _NavTab(
+        label: 'Profil',
+        icon: Icons.person_outline_rounded,
+        selectedIcon: Icons.person_rounded,
+        page: ProfileScreen(),
+      ),
+    ];
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: IndexedStack(
+        index: _index,
+        children: _tabs.map((t) => t.page).toList(),
+      ),
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: _index,
+        onDestinationSelected: (i) => setState(() => _index = i),
+        destinations: _tabs
+            .map((t) => NavigationDestination(
+                  icon: Icon(t.icon),
+                  selectedIcon: Icon(t.selectedIcon),
+                  label: t.label,
+                ))
+            .toList(),
       ),
     );
   }
