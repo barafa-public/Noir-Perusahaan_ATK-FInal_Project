@@ -2,6 +2,7 @@ import '../models/product_model.dart';
 import 'api_client.dart';
 import 'auth_service.dart';
 import 'db_helper.dart';
+import 'product_service.dart';
 
 class SyncReport {
   final int productsReceived;
@@ -115,6 +116,7 @@ class SyncService {
 
     // Kursor disimpan hanya setelah semua halaman berhasil diterapkan.
     if (newest != null) await db.setMeta(_kProductsSince, newest);
+    ProductService.instance.notifyChanged();
     return received;
   }
 

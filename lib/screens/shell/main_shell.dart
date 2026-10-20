@@ -11,6 +11,7 @@ import '../profile/profile_screen.dart';
 import 'dart:async';
 
 import '../../services/sync_service.dart';
+import '../products/product_list_screen.dart';
 
 class _NavTab {
   final String label;
@@ -79,19 +80,14 @@ class _MainShellState extends State<MainShell> {
         label: 'Beranda',
         icon: Icons.home_outlined,
         selectedIcon: Icons.home_rounded,
-        page: internal
-            ? const InternalHomeScreen()
-            : const CustomerHomeScreen(),
+        page:
+            internal ? const InternalHomeScreen() : const CustomerHomeScreen(),
       ),
       _NavTab(
         label: 'Produk',
         icon: Icons.inventory_2_outlined,
         selectedIcon: Icons.inventory_2_rounded,
-        page: _ComingSoon(
-          title: internal ? 'Produk & Stok' : 'Produk',
-          icon: Icons.inventory_2_outlined,
-          message: 'Daftar produk dikerjakan di Sprint 2.',
-        ),
+        page: const ProductListScreen(),
       ),
       if (internal)
         const _NavTab(
