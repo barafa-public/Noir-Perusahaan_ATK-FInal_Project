@@ -14,6 +14,7 @@ import '../../services/sync_service.dart';
 import '../products/product_list_screen.dart';
 
 import '../orders/my_orders_screen.dart';
+import '../orders/orders_manage_screen.dart';
 
 class _NavTab {
   final String label;
@@ -97,11 +98,7 @@ class _MainShellState extends State<MainShell> {
           label: 'Transaksi',
           icon: Icons.receipt_long_outlined,
           selectedIcon: Icons.receipt_long_rounded,
-          page: _ComingSoon(
-            title: 'Transaksi',
-            icon: Icons.receipt_long_outlined,
-            message: 'Pesanan masuk dan penjualan dikerjakan di Sprint 3.',
-          ),
+          page: OrdersManageScreen(),
         )
       else
         const _NavTab(
