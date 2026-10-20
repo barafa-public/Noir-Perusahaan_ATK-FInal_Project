@@ -9,10 +9,15 @@ import {
 } from "../_shared/auth.ts";
 
 const BCRYPT_COST = 10;
-// Dipakai agar waktu respons login tidak membocorkan apakah username ada.
-const DUMMY_HASH = bcrypt.hashSync("dummy-password", BCRYPT_COST);
-
 const USERNAME_RE = /^[a-z0-9_]{3,20}$/;
+
+// Hash dummy dihitung sekali saat pertama dibutuhkan (bukan saat boot),
+// supaya waktu respons login tidak membocorkan apakah username ada.
+let dummyHash: string | null = null;
+async function getDummyHash(): Promise<string> {
+  dummyHash ??= await bcrypt.hash("dummy-password", BCRYPT_COST);
+  return dummyHash;
+}
 
 async function readBody(req: Request): Promise<Record<string, unknown> | null> {
   try {
@@ -98,7 +103,10 @@ async function login(req: Request): Promise<Response> {
     return errorResponse("Gagal login", 500);
   }
 
-  const ok = await bcrypt.compare(password, data?.password_hash ?? DUMMY_HASH);
+  const ok = await bcrypt.compare(
+    password,
+    data?.password_hash ?? (await getDummyHash()),
+  );
   if (!data || !ok) {
     return errorResponse("Username atau password salah", 401, "BAD_CREDENTIALS");
   }
@@ -121,6 +129,13 @@ async function me(req: Request): Promise<Response> {
   return json({ user });
 }
 
+// GET /auth/internal-check  (hanya role internal; endpoint uji pembatasan akses)
+async function internalCheck(req: Request): Promise<Response> {
+  const user = await authenticate(req, ["internal"]);
+  if (isResponse(user)) return user;
+  return json({ ok: true, user });
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -132,6 +147,9 @@ Deno.serve(async (req) => {
     if (req.method === "POST" && action === "register") return await register(req);
     if (req.method === "POST" && action === "login") return await login(req);
     if (req.method === "GET" && action === "me") return await me(req);
+    if (req.method === "GET" && action === "internal-check") {
+      return await internalCheck(req);
+    }
     return errorResponse("Endpoint tidak ditemukan", 404);
   } catch (e) {
     console.error("auth fatal", e);

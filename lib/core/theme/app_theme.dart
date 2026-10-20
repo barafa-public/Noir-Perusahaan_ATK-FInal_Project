@@ -40,10 +40,19 @@ class AppTheme {
         fillColor: AppColors.surface,
         hintStyle: const TextStyle(color: AppColors.textSecondary),
         prefixIconColor: AppColors.textSecondary,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         border: inputBorder(AppColors.border),
         enabledBorder: inputBorder(AppColors.border),
         focusedBorder: inputBorder(AppColors.yellow, 1.5),
+      ),
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+          minimumSize: const Size.fromHeight(52),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
+        ),
       ),
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(foregroundColor: AppColors.yellow),
@@ -55,16 +64,19 @@ class AppTheme {
         height: 68,
         indicatorColor: AppColors.yellow,
         iconTheme: WidgetStateProperty.resolveWith((states) => IconThemeData(
-          color: states.contains(WidgetState.selected)
-              ? AppColors.black : AppColors.textSecondary,
-        )),
+              color: states.contains(WidgetState.selected)
+                  ? AppColors.black
+                  : AppColors.textSecondary,
+            )),
         labelTextStyle: WidgetStateProperty.resolveWith((states) => TextStyle(
-          fontSize: 12,
-          fontWeight: states.contains(WidgetState.selected)
-              ? FontWeight.w700 : FontWeight.w500,
-          color: states.contains(WidgetState.selected)
-              ? AppColors.yellow : AppColors.textSecondary,
-        )),
+              fontSize: 12,
+              fontWeight: states.contains(WidgetState.selected)
+                  ? FontWeight.w700
+                  : FontWeight.w500,
+              color: states.contains(WidgetState.selected)
+                  ? AppColors.yellow
+                  : AppColors.textSecondary,
+            )),
       ),
       snackBarTheme: const SnackBarThemeData(
         backgroundColor: AppColors.surface,
