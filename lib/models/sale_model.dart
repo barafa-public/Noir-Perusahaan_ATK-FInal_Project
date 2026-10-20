@@ -58,6 +58,26 @@ class SaleModel {
     'sync_error': syncError,
   };
 
+  /// Waktu -> teks ISO-8601 UTC berpresisi milidetik (selalu ".SSSZ"), agar
+  /// perbandingan dan pengurutan sebagai teks di SQLite konsisten.
+  static String normalizeIso(DateTime d) => DateTime.fromMillisecondsSinceEpoch(
+    d.millisecondsSinceEpoch,
+    isUtc: true,
+  ).toIso8601String();
+
+  /// Dari baris tabel sales di server (selalu dianggap sudah terkirim).
+  factory SaleModel.fromServer(Map<String, dynamic> j) => SaleModel(
+    id: j['id'] as String,
+    productId: j['product_id'] as String,
+    productName: j['product_name'] as String,
+    unitPrice: (j['unit_price'] as num).toInt(),
+    qty: (j['qty'] as num).toInt(),
+    total: (j['total'] as num).toInt(),
+    cashierId: j['cashier_id'] as String,
+    soldAt: normalizeIso(DateTime.parse(j['sold_at'] as String)),
+    synced: true,
+  );
+
   /// Hanya field yang boleh ditentukan klien. Harga dan kasir ditentukan server.
   Map<String, dynamic> toPushJson() => {
     'id': id,

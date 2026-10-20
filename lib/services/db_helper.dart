@@ -4,12 +4,37 @@ import 'package:sqflite/sqflite.dart';
 import '../models/product_model.dart';
 import '../models/sale_model.dart';
 
+/// Ringkasan stok untuk Beranda internal.
+class StockSummary {
+  final int total;
+  final int low; // stok <= minimum (sudah termasuk yang habis)
+  final int out; // stok 0
+
+  const StockSummary({this.total = 0, this.low = 0, this.out = 0});
+}
+
 class DbHelper {
   DbHelper._();
   static final DbHelper instance = DbHelper._();
 
   static const _dbName = 'noir.db';
   static const _dbVersion = 1;
+
+  /// Stok efektif = stok cache dikurangi penjualan lokal yang belum diterima
+  /// server. Semua pembaca stok (daftar, detail, keranjang, ringkasan,
+  /// validasi penjualan) memakai ini, jadi konsisten walau sedang offline.
+  /// Penjualan yang DITOLAK server tidak dihitung (server tidak
+  /// mengurangi stok untuknya).
+  static const _effectiveStock = '''
+    MAX(0, p.stock - COALESCE((
+      SELECT SUM(s.qty) FROM sales s
+      WHERE s.product_id = p.id AND s.synced = 0 AND s.sync_error IS NULL
+    ), 0))
+  ''';
+
+  static const _productColumns =
+      'p.id, p.sku, p.name, p.category, p.description, p.price, '
+      'p.min_stock, p.is_active, p.updated_at, $_effectiveStock AS stock';
 
   Database? _db;
 
@@ -74,7 +99,7 @@ class DbHelper {
     });
   }
 
-  /// Daftar produk, opsional dicari (nama/SKU) dan difilter kategori.
+  /// Daftar produk (stok efektif), opsional dicari (nama/SKU) dan difilter kategori.
   Future<List<ProductModel>> getProducts({
     String? query,
     String? category,
@@ -89,34 +114,62 @@ class DbHelper {
           .replaceAll(r'\', r'\\')
           .replaceAll('%', r'\%')
           .replaceAll('_', r'\_');
-      where.add(r"(name LIKE ? ESCAPE '\' OR sku LIKE ? ESCAPE '\')");
+      where.add(r"(p.name LIKE ? ESCAPE '\' OR p.sku LIKE ? ESCAPE '\')");
       args
         ..add('%$esc%')
         ..add('%$esc%');
     }
     if (category != null && category.isNotEmpty) {
-      where.add('category = ?');
+      where.add('p.category = ?');
       args.add(category);
     }
 
-    final rows = await db.query(
-      'products',
-      where: where.isEmpty ? null : where.join(' AND '),
-      whereArgs: args.isEmpty ? null : args,
-      orderBy: 'name COLLATE NOCASE ASC',
+    final rows = await db.rawQuery(
+      'SELECT $_productColumns FROM products p'
+      '${where.isEmpty ? '' : ' WHERE ${where.join(' AND ')}'}'
+      ' ORDER BY p.name COLLATE NOCASE ASC',
+      args,
     );
     return rows.map(ProductModel.fromDb).toList();
   }
 
   Future<ProductModel?> getProduct(String id) async {
     final db = await database;
-    final rows = await db.query(
-      'products',
-      where: 'id = ?',
-      whereArgs: [id],
-      limit: 1,
+    final rows = await db.rawQuery(
+      'SELECT $_productColumns FROM products p WHERE p.id = ? LIMIT 1',
+      [id],
     );
     return rows.isEmpty ? null : ProductModel.fromDb(rows.first);
+  }
+
+  /// Total produk, jumlah stok menipis (<= minimum), dan jumlah habis.
+  Future<StockSummary> getStockSummary() async {
+    final db = await database;
+    final rows = await db.rawQuery('''
+      SELECT COUNT(*) AS total,
+             COALESCE(SUM(CASE WHEN stock <= min_stock THEN 1 ELSE 0 END), 0) AS low,
+             COALESCE(SUM(CASE WHEN stock <= 0 THEN 1 ELSE 0 END), 0) AS out
+      FROM (SELECT p.min_stock AS min_stock, $_effectiveStock AS stock
+            FROM products p)
+    ''');
+    final r = rows.first;
+    return StockSummary(
+      total: (r['total'] as int?) ?? 0,
+      low: (r['low'] as int?) ?? 0,
+      out: (r['out'] as int?) ?? 0,
+    );
+  }
+
+  /// Produk yang stoknya <= minimum, yang paling sedikit lebih dulu.
+  Future<List<ProductModel>> getLowStockProducts({int limit = 5}) async {
+    final db = await database;
+    final rows = await db.rawQuery(
+      'SELECT * FROM (SELECT $_productColumns FROM products p) '
+      'WHERE stock <= min_stock '
+      'ORDER BY stock ASC, name COLLATE NOCASE ASC LIMIT ?',
+      [limit],
+    );
+    return rows.map(ProductModel.fromDb).toList();
   }
 
   Future<List<String>> getCategories() async {
@@ -174,9 +227,14 @@ class DbHelper {
     await db.insert('sales', sale.toDb());
   }
 
-  Future<List<SaleModel>> getSales({int? limit}) async {
+  Future<List<SaleModel>> getSales({int limit = 50, int offset = 0}) async {
     final db = await database;
-    final rows = await db.query('sales', orderBy: 'sold_at DESC', limit: limit);
+    final rows = await db.query(
+      'sales',
+      orderBy: 'sold_at DESC, id DESC',
+      limit: limit,
+      offset: offset,
+    );
     return rows.map(SaleModel.fromDb).toList();
   }
 
@@ -227,6 +285,74 @@ class DbHelper {
       'sales',
       {'sync_error': message},
       where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
+  /// Jumlah dan total penjualan sejak [isoUtc] (tanpa yang ditolak server).
+  Future<({int count, int total})> getSalesSince(String isoUtc) async {
+    final db = await database;
+    final r = await db.rawQuery(
+      'SELECT COUNT(*) AS c, COALESCE(SUM(total), 0) AS t FROM sales '
+      'WHERE sold_at >= ? AND sync_error IS NULL',
+      [isoUtc],
+    );
+    return (
+      count: (r.first['c'] as int?) ?? 0,
+      total: (r.first['t'] as int?) ?? 0,
+    );
+  }
+
+  /// Semua penjualan di perangkat yang masih menunggu dikirim (semua kasir).
+  Future<int> countAllPendingSales() async {
+    final db = await database;
+    final r = await db.rawQuery(
+      'SELECT COUNT(*) AS c FROM sales WHERE synced = 0 AND sync_error IS NULL',
+    );
+    return (r.first['c'] as int?) ?? 0;
+  }
+
+  Future<int> countRejectedSales() async {
+    final db = await database;
+    final r = await db.rawQuery(
+      'SELECT COUNT(*) AS c FROM sales WHERE synced = 0 AND sync_error IS NOT NULL',
+    );
+    return (r.first['c'] as int?) ?? 0;
+  }
+
+  /// Menyimpan penjualan dari server. Baris dengan id yang sama (mis. penjualan
+  /// lokal yang sebenarnya sudah diterima server) ditimpa dan menjadi synced.
+  Future<void> upsertServerSales(List<SaleModel> sales) async {
+    if (sales.isEmpty) return;
+    final db = await database;
+    final batch = db.batch();
+    for (final s in sales) {
+      batch.insert(
+        'sales',
+        s.toDb(),
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    }
+    await batch.commit(noResult: true);
+  }
+
+  /// Penjualan ditolak -> dikirim ulang (hapus penanda error).
+  Future<void> retrySale(String id) async {
+    final db = await database;
+    await db.update(
+      'sales',
+      {'sync_error': null},
+      where: 'id = ? AND synced = 0',
+      whereArgs: [id],
+    );
+  }
+
+  /// Hanya menghapus penjualan yang DITOLAK server (belum pernah tercatat di server).
+  Future<void> deleteRejectedSale(String id) async {
+    final db = await database;
+    await db.delete(
+      'sales',
+      where: 'id = ? AND synced = 0 AND sync_error IS NOT NULL',
       whereArgs: [id],
     );
   }
