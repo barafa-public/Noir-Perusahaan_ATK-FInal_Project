@@ -4,6 +4,7 @@ import '../../core/constants/app_colors.dart';
 import '../../core/utils/validators.dart';
 import '../../services/api_client.dart';
 import '../../services/auth_service.dart';
+import '../../services/biometric_service.dart';
 import '../../widgets/noir_logo.dart';
 import 'register_screen.dart';
 
@@ -23,9 +24,13 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _loading = false;
   String? _error;
 
+  /// Non-null jika biometrik tersedia dan sudah diaktifkan untuk akun ini.
+  String? _bioUsername;
+
   @override
   void initState() {
     super.initState();
+    _loadBiometric();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final notice = AuthService.instance.takeNotice();
       if (notice != null && mounted) {
@@ -42,6 +47,14 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
+  Future<void> _loadBiometric() async {
+    final available = await BiometricService.instance.isAvailable();
+    final username = available
+        ? await BiometricService.instance.enabledUsername
+        : null;
+    if (mounted) setState(() => _bioUsername = username);
+  }
+
   Future<void> _submit() async {
     FocusScope.of(context).unfocus();
     if (!_formKey.currentState!.validate()) return;
@@ -55,6 +68,31 @@ class _LoginScreenState extends State<LoginScreen> {
       // Berhasil: AuthService mengubah status dan halaman berganti otomatis.
     } on ApiException catch (e) {
       if (mounted) setState(() => _error = e.message);
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _biometricLogin() async {
+    FocusScope.of(context).unfocus();
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      final r = await BiometricService.instance.authenticate(
+        'Masuk ke Noir sebagai @$_bioUsername',
+      );
+      if (!r.success) {
+        if (r.message != null && mounted) setState(() => _error = r.message);
+        return; // dibatalkan atau gagal: pengguna tetap bisa pakai password
+      }
+      await AuthService.instance.loginWithStoredCredentials();
+    } on ApiException catch (e) {
+      if (mounted) {
+        setState(() => _error = e.message);
+        _loadBiometric(); // tombol hilang jika biometrik dinonaktifkan
+      }
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -76,12 +114,18 @@ class _LoginScreenState extends State<LoginScreen> {
                   children: [
                     const Center(child: NoirLogo(width: 140)),
                     const SizedBox(height: 32),
-                    const Text('Selamat datang',
-                        style: TextStyle(
-                            fontSize: 26, fontWeight: FontWeight.w800)),
+                    const Text(
+                      'Selamat datang',
+                      style: TextStyle(
+                        fontSize: 26,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
                     const SizedBox(height: 6),
-                    const Text('Masuk untuk melanjutkan ke Noir.',
-                        style: TextStyle(color: AppColors.textSecondary)),
+                    const Text(
+                      'Masuk untuk melanjutkan ke Noir.',
+                      style: TextStyle(color: AppColors.textSecondary),
+                    ),
                     const SizedBox(height: 28),
                     TextFormField(
                       controller: _username,
@@ -106,9 +150,11 @@ class _LoginScreenState extends State<LoginScreen> {
                         hintText: 'Password',
                         prefixIcon: const Icon(Icons.lock_outline_rounded),
                         suffixIcon: IconButton(
-                          icon: Icon(_obscure
-                              ? Icons.visibility_outlined
-                              : Icons.visibility_off_outlined),
+                          icon: Icon(
+                            _obscure
+                                ? Icons.visibility_outlined
+                                : Icons.visibility_off_outlined,
+                          ),
                           onPressed: () => setState(() => _obscure = !_obscure),
                         ),
                       ),
@@ -122,10 +168,13 @@ class _LoginScreenState extends State<LoginScreen> {
                           color: AppColors.error.withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                              color: AppColors.error.withValues(alpha: 0.5)),
+                            color: AppColors.error.withValues(alpha: 0.5),
+                          ),
                         ),
-                        child: Text(_error!,
-                            style: const TextStyle(color: AppColors.error)),
+                        child: Text(
+                          _error!,
+                          style: const TextStyle(color: AppColors.error),
+                        ),
                       ),
                     ],
                     const SizedBox(height: 22),
@@ -136,23 +185,44 @@ class _LoginScreenState extends State<LoginScreen> {
                               width: 20,
                               height: 20,
                               child: CircularProgressIndicator(
-                                  strokeWidth: 2, color: AppColors.black),
+                                strokeWidth: 2,
+                                color: AppColors.black,
+                              ),
                             )
                           : const Text('Masuk'),
                     ),
+                    if (_bioUsername != null) ...[
+                      const SizedBox(height: 12),
+                      OutlinedButton.icon(
+                        onPressed: _loading ? null : _biometricLogin,
+                        icon: const Icon(Icons.fingerprint_rounded),
+                        label: Text('Masuk dengan biometrik (@$_bioUsername)'),
+                        style: OutlinedButton.styleFrom(
+                          minimumSize: const Size.fromHeight(52),
+                          foregroundColor: AppColors.yellow,
+                          side: const BorderSide(color: AppColors.border),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 12),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Text('Belum punya akun?',
-                            style: TextStyle(color: AppColors.textSecondary)),
+                        const Text(
+                          'Belum punya akun?',
+                          style: TextStyle(color: AppColors.textSecondary),
+                        ),
                         TextButton(
                           onPressed: _loading
                               ? null
                               : () => Navigator.of(context).push(
-                                    MaterialPageRoute(
-                                        builder: (_) => const RegisterScreen()),
+                                  MaterialPageRoute(
+                                    builder: (_) => const RegisterScreen(),
                                   ),
+                                ),
                           child: const Text('Daftar'),
                         ),
                       ],

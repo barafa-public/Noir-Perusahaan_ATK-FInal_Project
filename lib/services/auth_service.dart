@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import '../core/utils/navigation.dart';
 import '../models/user_model.dart';
 import 'api_client.dart';
+import 'biometric_service.dart';
 import 'session_service.dart';
 
 enum AuthStatus { unknown, unauthenticated, authenticated }
@@ -91,6 +92,47 @@ class AuthService extends ChangeNotifier {
       },
     );
     await _startSession(res);
+  }
+
+  /// Login ulang memakai kredensial tersimpan (dipanggil SETELAH biometrik lolos).
+  Future<void> loginWithStoredCredentials() async {
+    final creds = await BiometricService.instance.readCredentials();
+    if (creds == null) {
+      throw const ApiException('Login biometrik belum diaktifkan.');
+    }
+    try {
+      await login(creds.username, creds.password);
+    } on ApiException catch (e) {
+      if (e.code == 'BAD_CREDENTIALS') {
+        await BiometricService.instance.disable();
+        throw const ApiException(
+          'Password berubah. Login dengan password, lalu aktifkan biometrik lagi.',
+        );
+      }
+      rethrow;
+    }
+  }
+
+  /// Verifikasi password ke server, lalu simpan untuk login biometrik.
+  Future<void> enableBiometric(String password) async {
+    final u = _user;
+    if (u == null) throw const ApiException('Belum login.');
+    try {
+      await ApiClient.instance.post(
+        '/auth/login',
+        auth: false,
+        body: {'username': u.username, 'password': password},
+      );
+    } on ApiException catch (e) {
+      if (e.code == 'BAD_CREDENTIALS') {
+        throw const ApiException('Password salah.');
+      }
+      rethrow;
+    }
+    await BiometricService.instance.enable(
+      username: u.username,
+      password: password,
+    );
   }
 
   Future<void> logout() async {
