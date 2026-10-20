@@ -8,7 +8,12 @@ class QtyStepper extends StatelessWidget {
   final VoidCallback? onMinus;
   final VoidCallback? onPlus;
 
-  const QtyStepper({super.key, required this.value, this.onMinus, this.onPlus});
+  const QtyStepper({
+    super.key,
+    required this.value,
+    this.onMinus,
+    this.onPlus,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -26,13 +31,14 @@ class QtyStepper extends StatelessWidget {
             visualDensity: VisualDensity.compact,
             icon: const Icon(Icons.remove_rounded),
           ),
+          // Text langsung (bukan Center): Center tanpa tinggi akan melar
+          // setinggi layar bila ditaruh di bottomNavigationBar.
           SizedBox(
             width: 32,
-            child: Center(
-              child: Text(
-                '$value',
-                style: const TextStyle(fontWeight: FontWeight.w800),
-              ),
+            child: Text(
+              '$value',
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontWeight: FontWeight.w800),
             ),
           ),
           IconButton(
