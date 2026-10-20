@@ -13,6 +13,8 @@ import '../../widgets/product_card.dart';
 import 'product_detail_screen.dart';
 import 'product_form_screen.dart';
 
+import '../../widgets/cart_button.dart';
+
 class ProductListScreen extends StatefulWidget {
   const ProductListScreen({super.key});
 
@@ -62,8 +64,10 @@ class _ProductListScreenState extends State<ProductListScreen> {
       return _load();
     }
 
-    final products =
-        await db.getProducts(query: _search.text, category: _category);
+    final products = await db.getProducts(
+      query: _search.text,
+      category: _category,
+    );
     if (!mounted || seq != _seq) return;
 
     setState(() {
@@ -99,9 +103,8 @@ class _ProductListScreenState extends State<ProductListScreen> {
       MaterialPageRoute(builder: (_) => const ProductFormScreen()),
     );
     if (saved != null && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('${saved.name} ditambahkan.')),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('${saved.name} ditambahkan.')));
     }
   }
 
@@ -178,7 +181,10 @@ class _ProductListScreenState extends State<ProductListScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(_isInternal ? 'Produk & Stok' : 'Produk')),
+      appBar: AppBar(
+        title: Text(_isInternal ? 'Produk & Stok' : 'Produk'),
+        actions: [if (!_isInternal) const CartButton()],
+      ),
       floatingActionButton: _isInternal
           ? FloatingActionButton.extended(
               onPressed: _add,

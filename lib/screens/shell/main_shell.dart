@@ -13,6 +13,8 @@ import 'dart:async';
 import '../../services/sync_service.dart';
 import '../products/product_list_screen.dart';
 
+import '../orders/my_orders_screen.dart';
+
 class _NavTab {
   final String label;
   final IconData icon;
@@ -80,8 +82,9 @@ class _MainShellState extends State<MainShell> {
         label: 'Beranda',
         icon: Icons.home_outlined,
         selectedIcon: Icons.home_rounded,
-        page:
-            internal ? const InternalHomeScreen() : const CustomerHomeScreen(),
+        page: internal
+            ? const InternalHomeScreen()
+            : const CustomerHomeScreen(),
       ),
       _NavTab(
         label: 'Produk',
@@ -105,11 +108,7 @@ class _MainShellState extends State<MainShell> {
           label: 'Pesanan',
           icon: Icons.shopping_bag_outlined,
           selectedIcon: Icons.shopping_bag_rounded,
-          page: _ComingSoon(
-            title: 'Pesanan Saya',
-            icon: Icons.shopping_bag_outlined,
-            message: 'Keranjang dan pesanan dikerjakan di Sprint 2.',
-          ),
+          page: MyOrdersScreen(),
         ),
       const _NavTab(
         label: 'Saran',
