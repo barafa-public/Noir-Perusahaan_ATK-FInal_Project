@@ -126,6 +126,12 @@ class TimeService {
     return _isLondonSummer(asBst) ? asBst : w;
   }
 
+    /// Awal hari ini (pukul 00.00) di [zone], dinyatakan dalam UTC.
+  static DateTime startOfDayUtc(AppZone zone, DateTime nowUtc) {
+    final wall = toZone(nowUtc, zone);
+    return toUtc(DateTime.utc(wall.year, wall.month, wall.day), zone);
+  }
+
   // ------------------------------------------------------------------
   // Format
   // ------------------------------------------------------------------

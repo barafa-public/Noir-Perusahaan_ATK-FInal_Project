@@ -7,6 +7,7 @@ import '../../services/db_helper.dart';
 import '../../services/sale_service.dart';
 import '../../services/sync_service.dart';
 import '../../widgets/empty_state.dart';
+import '../../services/time_service.dart';
 
 /// Riwayat penjualan dari SQLite: milik perangkat ini (termasuk yang belum
 /// terkirim) dan penjualan perangkat lain yang sudah ditarik dari server.
@@ -27,10 +28,11 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
   int _rejected = 0;
   ({int count, int total}) _today = (count: 0, total: 0);
 
-  @override
+    @override
   void initState() {
     super.initState();
     SyncService.instance.salesChanged.addListener(_load);
+    TimeService.instance.displayZone.addListener(_load);
     _load();
     SyncService.instance.syncAll(); // tarik penjualan terbaru saat dibuka
   }
@@ -38,6 +40,7 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
   @override
   void dispose() {
     SyncService.instance.salesChanged.removeListener(_load);
+    TimeService.instance.displayZone.removeListener(_load);
     super.dispose();
   }
 
@@ -45,7 +48,10 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
     final db = DbHelper.instance;
     final now = DateTime.now();
     final startOfDay = SaleModel.normalizeIso(
-      DateTime(now.year, now.month, now.day),
+      TimeService.startOfDayUtc(
+        TimeService.instance.displayZone.value,
+        DateTime.now().toUtc(),
+      ),
     );
 
     final sales = await db.getSales(limit: _pageSize);
