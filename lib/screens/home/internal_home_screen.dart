@@ -7,6 +7,7 @@ import '../../widgets/noir_logo.dart';
 import '../../widgets/stock_summary_card.dart';
 import '../sales/sale_form_screen.dart';
 import '../sales/sales_history_screen.dart';
+import '../../widgets/tools_section.dart';
 
 class InternalHomeScreen extends StatelessWidget {
   const InternalHomeScreen({super.key});
@@ -42,6 +43,8 @@ class InternalHomeScreen extends StatelessWidget {
               icon: const Icon(Icons.history_rounded),
               label: const Text('Riwayat Penjualan'),
             ),
+            const SizedBox(height: 28),
+            const ToolsSection(),
           ],
         ),
       ),

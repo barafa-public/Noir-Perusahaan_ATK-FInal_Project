@@ -332,10 +332,13 @@ class DbHelper {
     final now = SaleModel.normalizeIso(DateTime.now());
     final batch = db.batch();
     for (final id in productIds) {
-      batch.insert('low_stock_alerts', {
-        'product_id': id,
-        'notified_at': now,
-      }, conflictAlgorithm: ConflictAlgorithm.replace);
+      batch.insert(
+          'low_stock_alerts',
+          {
+            'product_id': id,
+            'notified_at': now,
+          },
+          conflictAlgorithm: ConflictAlgorithm.replace);
     }
     await batch.commit(noResult: true);
   }
@@ -366,10 +369,44 @@ class DbHelper {
 
   Future<void> setMeta(String key, String value) async {
     final db = await database;
-    await db.insert('sync_meta', {
-      'key': key,
-      'value': value,
-    }, conflictAlgorithm: ConflictAlgorithm.replace);
+    await db.insert(
+        'sync_meta',
+        {
+          'key': key,
+          'value': value,
+        },
+        conflictAlgorithm: ConflictAlgorithm.replace);
+  }
+
+  // ===================================================================
+  // Kurs (cache)
+  // ===================================================================
+
+  Future<void> saveExchangeRates(
+    String base,
+    Map<String, double> rates,
+    String fetchedAt,
+  ) async {
+    final db = await database;
+    final batch = db.batch();
+    for (final e in rates.entries) {
+      batch.insert(
+        'exchange_rates',
+        {
+          'base': base,
+          'target': e.key,
+          'rate': e.value,
+          'fetched_at': fetchedAt,
+        },
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    }
+    await batch.commit(noResult: true);
+  }
+
+  Future<List<Map<String, Object?>>> getExchangeRates(String base) async {
+    final db = await database;
+    return db.query('exchange_rates', where: 'base = ?', whereArgs: [base]);
   }
 
   // Skema dari sqlite_schema.sql
