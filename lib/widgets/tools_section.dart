@@ -6,6 +6,8 @@ import '../screens/tools/location_screen.dart';
 import '../screens/tools/time_screen.dart';
 import '../screens/tools/sensor_screen.dart';
 
+import '../screens/tools/blockchain_screen.dart';
+
 class _Tool {
   final String label;
   final String subtitle;
@@ -17,14 +19,36 @@ class _Tool {
 
 /// Daftar fitur pendukung. Batch berikutnya cukup menambah satu entri di sini.
 final List<_Tool> _tools = [
-  _Tool('Kurs', 'IDR, USD, EUR', Icons.currency_exchange_rounded,
-      (_) => const CurrencyScreen()),
-  _Tool('Waktu', 'WIB, WITA, WIT, London', Icons.public_rounded,
-      (_) => const TimeScreen()),
-  _Tool('Lokasi', 'Jarak ke toko', Icons.location_on_rounded,
-      (_) => const LocationScreen()),
-  _Tool('Sensor', 'Accelerometer, gyroscope', Icons.sensors_rounded,
-      (_) => const SensorScreen()),
+  _Tool(
+    'Kurs',
+    'IDR, USD, EUR',
+    Icons.currency_exchange_rounded,
+    (_) => const CurrencyScreen(),
+  ),
+  _Tool(
+    'Waktu',
+    'WIB, WITA, WIT, London',
+    Icons.public_rounded,
+    (_) => const TimeScreen(),
+  ),
+  _Tool(
+    'Lokasi',
+    'Jarak ke toko',
+    Icons.location_on_rounded,
+    (_) => const LocationScreen(),
+  ),
+  _Tool(
+    'Sensor',
+    'Accelerometer, gyroscope',
+    Icons.sensors_rounded,
+    (_) => const SensorScreen(),
+  ),
+  _Tool(
+    'Blockchain',
+    'Hash penjualan',
+    Icons.link_rounded,
+    (_) => const BlockchainScreen(),
+  ),
 ];
 
 class ToolsSection extends StatelessWidget {
@@ -68,9 +92,9 @@ class _ToolTile extends StatelessWidget {
       ),
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
-        onTap: () => Navigator.of(context).push(
-          MaterialPageRoute(builder: tool.builder),
-        ),
+        onTap: () =>
+            Navigator.of(context)
+                .push(MaterialPageRoute(builder: tool.builder)),
         child: Padding(
           padding: const EdgeInsets.all(14),
           child: Column(
