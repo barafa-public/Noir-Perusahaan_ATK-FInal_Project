@@ -77,23 +77,6 @@ class AuthService extends ChangeNotifier {
     await _startSession(res);
   }
 
-  Future<void> register({
-    required String fullName,
-    required String username,
-    required String password,
-  }) async {
-    final res = await ApiClient.instance.post(
-      '/auth/register',
-      auth: false,
-      body: {
-        'full_name': fullName.trim(),
-        'username': username.trim().toLowerCase(),
-        'password': password,
-      },
-    );
-    await _startSession(res);
-  }
-
   /// Login ulang memakai kredensial tersimpan (dipanggil SETELAH biometrik lolos).
   Future<void> loginWithStoredCredentials() async {
     final creds = await BiometricService.instance.readCredentials();

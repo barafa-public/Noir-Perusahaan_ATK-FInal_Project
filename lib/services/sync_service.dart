@@ -1,4 +1,6 @@
-import 'package:flutter/foundation.dart';
+import 'dart:async';
+
+import 'package:flutter/widgets.dart';
 
 import '../models/product_model.dart';
 import '../models/sale_model.dart';
@@ -28,6 +30,25 @@ class SyncReport {
       'terkirim: $salesSent, ditolak: $salesRejected, error: $error)';
 }
 
+/// Menyinkronkan saat aplikasi dibuka kembali dari latar belakang
+/// (dibatasi paling sering sekali per 30 detik).
+class _ResumeSync with WidgetsBindingObserver {
+  DateTime? _last;
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state != AppLifecycleState.resumed) return;
+    if (AuthService.instance.user == null) return;
+    final now = DateTime.now();
+    final last = _last;
+    if (last != null && now.difference(last) < const Duration(seconds: 30)) {
+      return;
+    }
+    _last = now;
+    unawaited(SyncService.instance.syncAll());
+  }
+}
+
 class SyncService {
   SyncService._();
   static final SyncService instance = SyncService._();
@@ -45,8 +66,17 @@ class SyncService {
 
   void notifySalesChanged() => salesChanged.value++;
 
+  bool _autoSync = false;
   Future<SyncReport>? _running;
   bool _rerun = false;
+
+  /// Mulai menyinkronkan otomatis tiap aplikasi dibuka kembali. Aman dipanggil
+  /// berulang; dipanggil sekali dari MainShell.
+  void startAutoSync() {
+    if (_autoSync) return;
+    _autoSync = true;
+    WidgetsBinding.instance.addObserver(_ResumeSync());
+  }
 
   /// Kirim penjualan tertunda, tarik penjualan baru dari server (internal),
   /// lalu tarik perubahan produk. Tidak melempar error; lihat [SyncReport.error].

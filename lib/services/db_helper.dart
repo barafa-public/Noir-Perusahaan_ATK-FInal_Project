@@ -18,13 +18,8 @@ class DbHelper {
   static final DbHelper instance = DbHelper._();
 
   static const _dbName = 'noir.db';
-  static const _dbVersion = 1;
+  static const _dbVersion = 2;
 
-  /// Stok efektif = stok cache dikurangi penjualan lokal yang belum diterima
-  /// server. Semua pembaca stok (daftar, detail, keranjang, ringkasan,
-  /// validasi penjualan) memakai ini, jadi konsisten walau sedang offline.
-  /// Penjualan yang DITOLAK server tidak dihitung (server tidak
-  /// mengurangi stok untuknya).
   static const _effectiveStock = '''
     MAX(0, p.stock - COALESCE((
       SELECT SUM(s.qty) FROM sales s
@@ -42,17 +37,23 @@ class DbHelper {
 
   Future<Database> _open() async {
     final path = join(await getDatabasesPath(), _dbName);
+
     return openDatabase(
       path,
       version: _dbVersion,
       onCreate: (db, version) async {
-        // Satu panggilan execute = satu statement.
+        // Membuat skema database untuk instalasi baru.
         for (final sql in _schema) {
           await db.execute(sql);
         }
       },
       onUpgrade: (db, oldVersion, newVersion) async {
-        // Isi migrasi di sini saat _dbVersion dinaikkan.
+        // Migrasi versi 1 ke versi 2:
+        // Hapus tabel lama yang sudah tidak digunakan.
+        if (oldVersion < 2) {
+          await db.execute('DROP TABLE IF EXISTS cart_items');
+          await db.execute('DROP TABLE IF EXISTS order_status_cache');
+        }
       },
     );
   }
@@ -83,11 +84,6 @@ class DbHelper {
           );
         } else {
           batch.delete('products', where: 'id = ?', whereArgs: [p.id]);
-          batch.delete(
-            'cart_items',
-            where: 'product_id = ?',
-            whereArgs: [p.id],
-          );
           batch.delete(
             'low_stock_alerts',
             where: 'product_id = ?',
@@ -178,44 +174,6 @@ class DbHelper {
       'SELECT DISTINCT category FROM products ORDER BY category COLLATE NOCASE',
     );
     return rows.map((r) => r['category'] as String).toList();
-  }
-
-  // ===================================================================
-  // Keranjang (draft per akun)
-  // ===================================================================
-
-  /// product_id -> qty
-  Future<Map<String, int>> getCart(String userId) async {
-    final db = await database;
-    final rows = await db.query(
-      'cart_items',
-      where: 'user_id = ?',
-      whereArgs: [userId],
-    );
-    return {for (final r in rows) r['product_id'] as String: r['qty'] as int};
-  }
-
-  /// qty <= 0 menghapus item dari keranjang.
-  Future<void> setCartQty(String userId, String productId, int qty) async {
-    final db = await database;
-    if (qty <= 0) {
-      await db.delete(
-        'cart_items',
-        where: 'user_id = ? AND product_id = ?',
-        whereArgs: [userId, productId],
-      );
-      return;
-    }
-    await db.insert('cart_items', {
-      'user_id': userId,
-      'product_id': productId,
-      'qty': qty,
-    }, conflictAlgorithm: ConflictAlgorithm.replace);
-  }
-
-  Future<void> clearCart(String userId) async {
-    final db = await database;
-    await db.delete('cart_items', where: 'user_id = ?', whereArgs: [userId]);
   }
 
   // ===================================================================
@@ -358,6 +316,40 @@ class DbHelper {
   }
 
   // ===================================================================
+  // Penanda notifikasi
+  // ===================================================================
+
+  /// Produk yang stok menipisnya sudah pernah diberitahukan.
+  Future<Set<String>> getAlertedProductIds() async {
+    final db = await database;
+    final rows = await db.query('low_stock_alerts', columns: ['product_id']);
+    return rows.map((r) => r['product_id'] as String).toSet();
+  }
+
+  Future<void> markProductsAlerted(List<String> productIds) async {
+    if (productIds.isEmpty) return;
+    final db = await database;
+    final now = SaleModel.normalizeIso(DateTime.now());
+    final batch = db.batch();
+    for (final id in productIds) {
+      batch.insert('low_stock_alerts', {
+        'product_id': id,
+        'notified_at': now,
+      }, conflictAlgorithm: ConflictAlgorithm.replace);
+    }
+    await batch.commit(noResult: true);
+  }
+
+  Future<void> clearProductAlert(String productId) async {
+    final db = await database;
+    await db.delete(
+      'low_stock_alerts',
+      where: 'product_id = ?',
+      whereArgs: [productId],
+    );
+  }
+
+  // ===================================================================
   // sync_meta
   // ===================================================================
 
@@ -399,14 +391,6 @@ class DbHelper {
     'CREATE INDEX idx_products_category ON products (category)',
     'CREATE INDEX idx_products_name ON products (name)',
     '''
-    CREATE TABLE cart_items (
-      user_id    TEXT NOT NULL,
-      product_id TEXT NOT NULL,
-      qty        INTEGER NOT NULL CHECK (qty > 0),
-      PRIMARY KEY (user_id, product_id)
-    )
-    ''',
-    '''
     CREATE TABLE sales (
       id           TEXT PRIMARY KEY,
       product_id   TEXT NOT NULL,
@@ -429,13 +413,6 @@ class DbHelper {
       rate       REAL NOT NULL,
       fetched_at TEXT NOT NULL,
       PRIMARY KEY (base, target)
-    )
-    ''',
-    '''
-    CREATE TABLE order_status_cache (
-      order_id TEXT PRIMARY KEY,
-      order_no TEXT NOT NULL,
-      status   TEXT NOT NULL
     )
     ''',
     '''

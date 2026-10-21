@@ -13,8 +13,6 @@ import '../../widgets/product_card.dart';
 import 'product_detail_screen.dart';
 import 'product_form_screen.dart';
 
-import '../../widgets/cart_button.dart';
-
 class ProductListScreen extends StatefulWidget {
   const ProductListScreen({super.key});
 
@@ -181,10 +179,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(_isInternal ? 'Produk & Stok' : 'Produk'),
-        actions: [if (!_isInternal) const CartButton()],
-      ),
+      appBar: AppBar(title: Text(_isInternal ? 'Produk & Stok' : 'Produk')),
       floatingActionButton: _isInternal
           ? FloatingActionButton.extended(
               onPressed: _add,

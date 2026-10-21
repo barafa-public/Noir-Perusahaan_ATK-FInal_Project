@@ -6,7 +6,6 @@ import '../../services/api_client.dart';
 import '../../services/auth_service.dart';
 import '../../services/biometric_service.dart';
 import '../../widgets/noir_logo.dart';
-import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -31,6 +30,7 @@ class _LoginScreenState extends State<LoginScreen> {
   void initState() {
     super.initState();
     _loadBiometric();
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final notice = AuthService.instance.takeNotice();
       if (notice != null && mounted) {
@@ -49,52 +49,72 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _loadBiometric() async {
     final available = await BiometricService.instance.isAvailable();
+
     final username = available
         ? await BiometricService.instance.enabledUsername
         : null;
-    if (mounted) setState(() => _bioUsername = username);
+
+    if (mounted) {
+      setState(() => _bioUsername = username);
+    }
   }
 
   Future<void> _submit() async {
     FocusScope.of(context).unfocus();
+
     if (!_formKey.currentState!.validate()) return;
 
     setState(() {
       _loading = true;
       _error = null;
     });
+
     try {
       await AuthService.instance.login(_username.text, _password.text);
-      // Berhasil: AuthService mengubah status dan halaman berganti otomatis.
+
+      // Berhasil: AuthService mengubah status dan halaman
+      // berganti otomatis.
     } on ApiException catch (e) {
-      if (mounted) setState(() => _error = e.message);
+      if (mounted) {
+        setState(() => _error = e.message);
+      }
     } finally {
-      if (mounted) setState(() => _loading = false);
+      if (mounted) {
+        setState(() => _loading = false);
+      }
     }
   }
 
   Future<void> _biometricLogin() async {
     FocusScope.of(context).unfocus();
+
     setState(() {
       _loading = true;
       _error = null;
     });
+
     try {
       final r = await BiometricService.instance.authenticate(
         'Masuk ke Noir sebagai @$_bioUsername',
       );
+
       if (!r.success) {
-        if (r.message != null && mounted) setState(() => _error = r.message);
-        return; // dibatalkan atau gagal: pengguna tetap bisa pakai password
+        if (r.message != null && mounted) {
+          setState(() => _error = r.message);
+        }
+        return; // Dibatalkan atau gagal: tetap bisa pakai password.
       }
+
       await AuthService.instance.loginWithStoredCredentials();
     } on ApiException catch (e) {
       if (mounted) {
         setState(() => _error = e.message);
-        _loadBiometric(); // tombol hilang jika biometrik dinonaktifkan
+        _loadBiometric();
       }
     } finally {
-      if (mounted) setState(() => _loading = false);
+      if (mounted) {
+        setState(() => _loading = false);
+      }
     }
   }
 
@@ -114,6 +134,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   children: [
                     const Center(child: NoirLogo(width: 140)),
                     const SizedBox(height: 32),
+
                     const Text(
                       'Selamat datang',
                       style: TextStyle(
@@ -122,11 +143,13 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
                     const SizedBox(height: 6),
+
                     const Text(
                       'Masuk untuk melanjutkan ke Noir.',
                       style: TextStyle(color: AppColors.textSecondary),
                     ),
                     const SizedBox(height: 28),
+
                     TextFormField(
                       controller: _username,
                       enabled: !_loading,
@@ -140,6 +163,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       validator: (v) => Validators.required(v, 'Username'),
                     ),
                     const SizedBox(height: 14),
+
                     TextFormField(
                       controller: _password,
                       enabled: !_loading,
@@ -155,11 +179,17 @@ class _LoginScreenState extends State<LoginScreen> {
                                 ? Icons.visibility_outlined
                                 : Icons.visibility_off_outlined,
                           ),
-                          onPressed: () => setState(() => _obscure = !_obscure),
+                          onPressed: () {
+                            setState(() {
+                              _obscure = !_obscure;
+                            });
+                          },
                         ),
                       ),
                       validator: (v) => Validators.required(v, 'Password'),
                     ),
+
+                    // Pesan error login
                     if (_error != null) ...[
                       const SizedBox(height: 14),
                       Container(
@@ -177,6 +207,8 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ),
                     ],
+
+                    // Tombol Masuk dengan username dan password
                     const SizedBox(height: 22),
                     FilledButton(
                       onPressed: _loading ? null : _submit,
@@ -191,6 +223,8 @@ class _LoginScreenState extends State<LoginScreen> {
                             )
                           : const Text('Masuk'),
                     ),
+
+                    // Tombol login biometrik
                     if (_bioUsername != null) ...[
                       const SizedBox(height: 12),
                       OutlinedButton.icon(
@@ -207,26 +241,8 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ),
                     ],
+
                     const SizedBox(height: 12),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Text(
-                          'Belum punya akun?',
-                          style: TextStyle(color: AppColors.textSecondary),
-                        ),
-                        TextButton(
-                          onPressed: _loading
-                              ? null
-                              : () => Navigator.of(context).push(
-                                  MaterialPageRoute(
-                                    builder: (_) => const RegisterScreen(),
-                                  ),
-                                ),
-                          child: const Text('Daftar'),
-                        ),
-                      ],
-                    ),
                   ],
                 ),
               ),

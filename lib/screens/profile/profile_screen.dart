@@ -44,10 +44,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
             if (hasPhoto)
               ListTile(
-                leading:
-                    const Icon(Icons.delete_outline, color: AppColors.error),
-                title: const Text('Hapus foto',
-                    style: TextStyle(color: AppColors.error)),
+                leading: const Icon(
+                  Icons.delete_outline,
+                  color: AppColors.error,
+                ),
+                title: const Text(
+                  'Hapus foto',
+                  style: TextStyle(color: AppColors.error),
+                ),
                 onTap: () => Navigator.pop(ctx, _PhotoAction.remove),
               ),
           ],
@@ -70,8 +74,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-              content: Text(
-                  'Tidak dapat mengambil foto. Periksa izin kamera atau galeri.')),
+            content: Text(
+              'Tidak dapat mengambil foto. Periksa izin kamera atau galeri.',
+            ),
+          ),
         );
       }
     } finally {
@@ -82,8 +88,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final user = AuthService.instance.user;
-    final roleLabel =
-        (user?.isInternal ?? false) ? 'User Internal' : 'Customer';
+    const roleLabel = 'Admin';
 
     return Scaffold(
       appBar: AppBar(title: const Text('Profil')),
@@ -111,10 +116,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               width: 16,
                               height: 16,
                               child: CircularProgressIndicator(
-                                  strokeWidth: 2, color: AppColors.black),
+                                strokeWidth: 2,
+                                color: AppColors.black,
+                              ),
                             )
-                          : const Icon(Icons.edit_rounded,
-                              size: 16, color: AppColors.black),
+                          : const Icon(
+                              Icons.edit_rounded,
+                              size: 16,
+                              color: AppColors.black,
+                            ),
                     ),
                   ),
                 ],
@@ -140,13 +150,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
               decoration: BoxDecoration(
                 color: AppColors.yellow.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(20),
-                border:
-                    Border.all(color: AppColors.yellow.withValues(alpha: 0.6)),
+                border: Border.all(
+                  color: AppColors.yellow.withValues(alpha: 0.6),
+                ),
               ),
               child: Text(
                 roleLabel,
                 style: const TextStyle(
-                    color: AppColors.yellow, fontWeight: FontWeight.w700),
+                  color: AppColors.yellow,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ),
           ),
@@ -162,7 +175,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
               foregroundColor: AppColors.error,
               side: const BorderSide(color: AppColors.error),
               shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16)),
+                borderRadius: BorderRadius.circular(16),
+              ),
             ),
           ),
         ],

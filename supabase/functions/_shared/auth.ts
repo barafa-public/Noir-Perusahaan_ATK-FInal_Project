@@ -2,7 +2,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { jwtVerify, SignJWT } from "npm:jose@5";
 import { errorResponse } from "./cors.ts";
 
-export type Role = "customer" | "internal";
+export type Role = "internal";
 
 export interface AuthUser {
   id: string;
