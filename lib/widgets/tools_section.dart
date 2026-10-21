@@ -4,6 +4,7 @@ import '../core/constants/app_colors.dart';
 import '../screens/tools/currency_screen.dart';
 import '../screens/tools/location_screen.dart';
 import '../screens/tools/time_screen.dart';
+import '../screens/tools/sensor_screen.dart';
 
 class _Tool {
   final String label;
@@ -22,6 +23,8 @@ final List<_Tool> _tools = [
       (_) => const TimeScreen()),
   _Tool('Lokasi', 'Jarak ke toko', Icons.location_on_rounded,
       (_) => const LocationScreen()),
+  _Tool('Sensor', 'Accelerometer, gyroscope', Icons.sensors_rounded,
+      (_) => const SensorScreen()),
 ];
 
 class ToolsSection extends StatelessWidget {
