@@ -7,6 +7,7 @@ import '../screens/tools/time_screen.dart';
 import '../screens/tools/sensor_screen.dart';
 
 import '../screens/tools/blockchain_screen.dart';
+import '../screens/tools/ai_chat_screen.dart';
 
 class _Tool {
   final String label;
@@ -48,6 +49,12 @@ final List<_Tool> _tools = [
     'Hash penjualan',
     Icons.link_rounded,
     (_) => const BlockchainScreen(),
+  ),
+  _Tool(
+    'Asisten AI',
+    'Tanya soal stok',
+    Icons.smart_toy_rounded,
+    (_) => const AiChatScreen(),
   ),
 ];
 
@@ -92,9 +99,8 @@ class _ToolTile extends StatelessWidget {
       ),
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
-        onTap: () =>
-            Navigator.of(context)
-                .push(MaterialPageRoute(builder: tool.builder)),
+        onTap: () => Navigator.of(context)
+            .push(MaterialPageRoute(builder: tool.builder)),
         child: Padding(
           padding: const EdgeInsets.all(14),
           child: Column(

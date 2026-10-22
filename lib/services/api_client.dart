@@ -33,14 +33,16 @@ class ApiClient {
     String path, {
     Map<String, dynamic>? body,
     bool auth = true,
+    Duration? timeout,
   }) =>
-      _send('POST', path, body: body, auth: auth);
+      _send('POST', path, body: body, auth: auth, timeout: timeout);
 
   Future<Map<String, dynamic>> _send(
     String method,
     String path, {
     Map<String, dynamic>? body,
     required bool auth,
+    Duration? timeout,
   }) async {
     if (!Env.isConfigured) {
       throw const ApiException(
@@ -62,7 +64,7 @@ class ApiClient {
       final request = method == 'GET'
           ? http.get(uri, headers: headers)
           : http.post(uri, headers: headers, body: jsonEncode(body ?? {}));
-      res = await request.timeout(_timeout);
+      res = await request.timeout(timeout ?? _timeout);
     } on TimeoutException {
       throw const ApiException('Server tidak merespons. Coba lagi.');
     } catch (_) {
