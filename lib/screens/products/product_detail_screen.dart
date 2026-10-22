@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/utils/formatters.dart';
 import '../../models/product_model.dart';
-import '../../services/auth_service.dart';
 import '../../services/db_helper.dart';
 import '../../services/product_service.dart';
 import '../../widgets/empty_state.dart';
@@ -21,8 +20,6 @@ class ProductDetailScreen extends StatefulWidget {
 class _ProductDetailScreenState extends State<ProductDetailScreen> {
   ProductModel? _product;
   bool _loaded = false;
-
-  bool get _isInternal => AuthService.instance.user?.isInternal ?? false;
 
   @override
   void initState() {
@@ -64,7 +61,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       appBar: AppBar(
         title: const Text('Detail Produk'),
         actions: [
-          if (_isInternal && p != null)
+          if (p != null)
             IconButton(
               tooltip: 'Ubah',
               icon: const Icon(Icons.edit_outlined),
@@ -77,12 +74,13 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               child: CircularProgressIndicator(color: AppColors.yellow),
             )
           : p == null
-          ? const EmptyState(
-              icon: Icons.inventory_2_outlined,
-              title: 'Produk tidak tersedia',
-              message: 'Produk ini sudah dinonaktifkan atau belum tersinkron.',
-            )
-          : _buildContent(p),
+              ? const EmptyState(
+                  icon: Icons.inventory_2_outlined,
+                  title: 'Produk tidak tersedia',
+                  message:
+                      'Produk ini sudah dinonaktifkan atau belum tersinkron.',
+                )
+              : _buildContent(p),
     );
   }
 
@@ -92,7 +90,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     if (p.isOutOfStock) {
       statusText = 'Habis';
       statusColor = AppColors.error;
-    } else if (_isInternal && p.isLowStock) {
+    } else if (p.isLowStock) {
       statusText = 'Stok menipis';
       statusColor = AppColors.yellow;
     } else {
@@ -152,8 +150,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                   valueColor: statusColor,
                 ),
                 _InfoRow(label: 'Stok', value: '${p.stock}'),
-                if (_isInternal)
-                  _InfoRow(label: 'Stok minimum', value: '${p.minStock}'),
+                _InfoRow(label: 'Stok minimum', value: '${p.minStock}'),
               ],
             ),
           ),
@@ -173,7 +170,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   }
 }
 
-/// Pengatur jumlah + tombol tambah ke keranjang (khusus Customer).
 class _Pill extends StatelessWidget {
   final String text;
   const _Pill(this.text);

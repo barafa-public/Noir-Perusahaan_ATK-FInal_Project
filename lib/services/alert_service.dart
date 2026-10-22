@@ -34,7 +34,7 @@ class AlertService {
   void _onProductsChanged() => unawaited(checkLowStock());
 
   // ------------------------------------------------------------------
-  // PBI-09.2: stok <= batas minimum (User internal)
+  // PBI-09.2: stok <= batas minimum
   // ------------------------------------------------------------------
 
   /// Memberi tahu produk yang BARU menjadi menipis. Penanda di tabel
@@ -42,8 +42,7 @@ class AlertService {
   /// pulih di atas minimum, sehingga turun lagi nanti akan diberitahukan lagi.
   /// Memakai stok efektif (sudah dikurangi penjualan lokal yang belum terkirim).
   Future<void> checkLowStock() async {
-    final user = AuthService.instance.user;
-    if (user == null || !user.isInternal) return;
+    if (AuthService.instance.user == null) return;
 
     if (_checkingStock) {
       _stockAgain = true;

@@ -4,7 +4,7 @@ import 'package:sqflite/sqflite.dart';
 import '../models/product_model.dart';
 import '../models/sale_model.dart';
 
-/// Ringkasan stok untuk Beranda internal.
+/// Ringkasan stok untuk Beranda.
 class StockSummary {
   final int total;
   final int low; // stok <= minimum (sudah termasuk yang habis)
@@ -69,7 +69,7 @@ class DbHelper {
 
   /// Menerapkan perubahan dari server dalam satu transaksi:
   /// produk aktif di-upsert, produk nonaktif dihapus dari cache
-  /// (beserta item keranjang dan penanda notifikasinya).
+  /// (beserta penanda notifikasi stok menipisnya).
   Future<void> applyProductChanges(List<ProductModel> changes) async {
     if (changes.isEmpty) return;
     final db = await database;

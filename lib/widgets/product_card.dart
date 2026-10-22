@@ -7,15 +7,12 @@ import '../models/product_model.dart';
 class ProductCard extends StatelessWidget {
   final ProductModel product;
 
-  /// true untuk User internal: tampilkan penanda "Menipis".
-  final bool showLowStock;
   final VoidCallback onTap;
 
   const ProductCard({
     super.key,
     required this.product,
     required this.onTap,
-    this.showLowStock = false,
   });
 
   @override
@@ -27,7 +24,7 @@ class ProductCard extends StatelessWidget {
     if (p.isOutOfStock) {
       stockText = 'Habis';
       stockColor = AppColors.error;
-    } else if (showLowStock && p.isLowStock) {
+    } else if (p.isLowStock) {
       stockText = 'Menipis · ${p.stock}';
       stockColor = AppColors.yellow;
     } else {

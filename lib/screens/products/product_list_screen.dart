@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 
 import '../../core/constants/app_colors.dart';
 import '../../models/product_model.dart';
-import '../../services/auth_service.dart';
 import '../../services/db_helper.dart';
 import '../../services/product_service.dart';
 import '../../services/sync_service.dart';
@@ -30,7 +29,6 @@ class _ProductListScreenState extends State<ProductListScreen> {
   bool _loaded = false;
   int _seq = 0; // mencegah hasil query lama menimpa yang baru
 
-  bool get _isInternal => AuthService.instance.user?.isInternal ?? false;
   bool get _filtering => _search.text.trim().isNotEmpty || _category != null;
 
   @override
@@ -158,13 +156,12 @@ class _ProductListScreenState extends State<ProductListScreen> {
             )
           : ListView.builder(
               physics: const AlwaysScrollableScrollPhysics(),
-              padding: EdgeInsets.fromLTRB(16, 4, 16, _isInternal ? 96 : 16),
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 96),
               itemCount: _products.length,
               itemBuilder: (context, i) {
                 final p = _products[i];
                 return ProductCard(
                   product: p,
-                  showLowStock: _isInternal,
                   onTap: () => Navigator.of(context).push(
                     MaterialPageRoute(
                       builder: (_) => ProductDetailScreen(productId: p.id),
@@ -179,16 +176,14 @@ class _ProductListScreenState extends State<ProductListScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(_isInternal ? 'Produk & Stok' : 'Produk')),
-      floatingActionButton: _isInternal
-          ? FloatingActionButton.extended(
-              onPressed: _add,
-              backgroundColor: AppColors.yellow,
-              foregroundColor: AppColors.black,
-              icon: const Icon(Icons.add_rounded),
-              label: const Text('Produk'),
-            )
-          : null,
+      appBar: AppBar(title: const Text('Produk & Stok')),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _add,
+        backgroundColor: AppColors.yellow,
+        foregroundColor: AppColors.black,
+        icon: const Icon(Icons.add_rounded),
+        label: const Text('Produk'),
+      ),
       body: Column(
         children: [
           Padding(

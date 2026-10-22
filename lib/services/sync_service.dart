@@ -78,7 +78,7 @@ class SyncService {
     WidgetsBinding.instance.addObserver(_ResumeSync());
   }
 
-  /// Kirim penjualan tertunda, tarik penjualan baru dari server (internal),
+  /// Kirim penjualan tertunda, tarik penjualan baru dari server,
   /// lalu tarik perubahan produk. Tidak melempar error; lihat [SyncReport.error].
   ///
   /// Bila dipanggil saat sinkronisasi sedang berjalan, satu putaran lagi
@@ -111,17 +111,15 @@ class SyncService {
 
     // Urutan penting: kirim dulu, tarik penjualan, baru tarik produk, agar
     // stok yang terambil sudah memperhitungkan penjualan yang baru dikirim.
-    if (user.isInternal) {
-      final push = await pushSales(user.id);
-      sent = push.sent;
-      rejected = push.rejected;
-      error = push.error;
+    final push = await pushSales(user.id);
+    sent = push.sent;
+    rejected = push.rejected;
+    error = push.error;
 
-      try {
-        salesIn = await pullSales();
-      } on ApiException catch (e) {
-        error ??= e.message;
-      }
+    try {
+      salesIn = await pullSales();
+    } on ApiException catch (e) {
+      error ??= e.message;
     }
 
     try {
@@ -189,7 +187,7 @@ class SyncService {
   }
 
   // -------------------------------------------------------------------
-  // Supabase -> SQLite: riwayat penjualan semua perangkat (internal)
+  // Supabase -> SQLite: riwayat penjualan semua perangkat
   // -------------------------------------------------------------------
 
   /// Menarik penjualan yang diterima server sejak penarikan terakhir
@@ -211,8 +209,8 @@ class SyncService {
       }
 
       final res = await ApiClient.instance.get(path.toString());
-      final raw = ((res['sales'] as List?) ?? const [])
-          .cast<Map<String, dynamic>>();
+      final raw =
+          ((res['sales'] as List?) ?? const []).cast<Map<String, dynamic>>();
 
       await db.upsertServerSales(raw.map(SaleModel.fromServer).toList());
       received += raw.length;

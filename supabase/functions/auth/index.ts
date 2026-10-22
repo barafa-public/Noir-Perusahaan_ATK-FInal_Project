@@ -1,4 +1,4 @@
-```typescript
+
 import bcrypt from "npm:bcryptjs@2.4.3";
 import { corsHeaders, errorResponse, json } from "../_shared/cors.ts";
 import {
@@ -10,15 +10,17 @@ import {
 } from "../_shared/auth.ts";
 
 const BCRYPT_COST = 10;
-const USERNAME_RE = /^[a-z0-9_]{3,20}$/;
 
-// Hash dummy dihitung sekali saat pertama dibutuhkan (bukan saat boot),
-// supaya waktu respons login tidak membocorkan apakah username ada.
+// Hash dummy dihitung sekali saat pertama dibutuhkan.
 let dummyHash: string | null = null;
 
 async function getDummyHash(): Promise<string> {
-  dummyHash ??= await bcrypt.hash("dummy-password", BCRYPT_COST);
-  return dummyHash;
+  const hash =
+    dummyHash ??
+    await bcrypt.hash("dummy-password", BCRYPT_COST);
+
+  dummyHash = hash;
+  return hash;
 }
 
 async function readBody(
@@ -43,18 +45,19 @@ async function session(
 // POST /auth/login { username, password }
 async function login(req: Request): Promise<Response> {
   const body = await readBody(req);
+
   if (!body) {
     return errorResponse("Body harus berupa JSON", 400);
   }
 
-  const username = String(body.username ?? "").trim().toLowerCase();
+  const username = String(body.username ?? "")
+    .trim()
+    .toLowerCase();
+
   const password = String(body.password ?? "");
 
   if (!username || !password) {
-    return errorResponse(
-      "Username dan password wajib diisi",
-      422,
-    );
+    return errorResponse("Username dan password wajib diisi", 422);
   }
 
   const { data, error } = await admin
@@ -96,17 +99,12 @@ async function login(req: Request): Promise<Response> {
 // GET /auth/me (Authorization: Bearer <token>)
 async function me(req: Request): Promise<Response> {
   const user = await authenticate(req);
-  if (isResponse(user)) return user;
+
+  if (isResponse(user)) {
+    return user;
+  }
 
   return json({ user });
-}
-
-// GET /auth/internal-check (hanya role internal)
-async function internalCheck(req: Request): Promise<Response> {
-  const user = await authenticate(req, ["internal"]);
-  if (isResponse(user)) return user;
-
-  return json({ ok: true, user });
 }
 
 Deno.serve(async (req) => {
@@ -114,7 +112,11 @@ Deno.serve(async (req) => {
     return new Response("ok", { headers: corsHeaders });
   }
 
-  const action = new URL(req.url).pathname.split("/").filter(Boolean).pop();
+  const action = new URL(req.url)
+    .pathname
+    .split("/")
+    .filter(Boolean)
+    .pop();
 
   try {
     if (req.method === "POST" && action === "login") {
@@ -125,14 +127,9 @@ Deno.serve(async (req) => {
       return await me(req);
     }
 
-    if (req.method === "GET" && action === "internal-check") {
-      return await internalCheck(req);
-    }
-
     return errorResponse("Endpoint tidak ditemukan", 404);
   } catch (e) {
     console.error("auth fatal", e);
     return errorResponse("Kesalahan server", 500);
   }
 });
-```

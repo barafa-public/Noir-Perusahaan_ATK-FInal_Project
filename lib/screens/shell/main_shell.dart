@@ -7,7 +7,7 @@ import '../../services/auth_service.dart';
 import '../../services/profile_photo_service.dart';
 import '../../services/sync_service.dart';
 import '../feedback/feedback_screen.dart';
-import '../home/internal_home_screen.dart';
+import '../home/home_screen.dart';
 import '../products/product_list_screen.dart';
 import '../profile/profile_screen.dart';
 
@@ -41,7 +41,7 @@ class _MainShellState extends State<MainShell> {
       label: 'Beranda',
       icon: Icons.home_outlined,
       selectedIcon: Icons.home_rounded,
-      page: InternalHomeScreen(),
+      page: HomeScreen(),
     ),
     _NavTab(
       label: 'Produk',

@@ -148,7 +148,6 @@ class _SaleFormScreenState extends State<SaleFormScreen> {
           opacity: p.stock <= 0 ? 0.5 : 1,
           child: ProductCard(
             product: p,
-            showLowStock: true,
             onTap: () => _select(p),
           ),
         );
@@ -268,9 +267,8 @@ class _SaleFormScreenState extends State<SaleFormScreen> {
           Expanded(child: _buildList()),
         ],
       ),
-      bottomNavigationBar: selected == null
-          ? null
-          : _buildSelectedPanel(selected),
+      bottomNavigationBar:
+          selected == null ? null : _buildSelectedPanel(selected),
     );
   }
 }

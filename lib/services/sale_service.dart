@@ -15,7 +15,7 @@ class SaleException implements Exception {
   String toString() => message;
 }
 
-/// Penjualan langsung oleh User internal. Alurnya offline-first:
+/// Penjualan langsung oleh admin. Alurnya offline-first:
 /// divalidasi terhadap stok efektif lokal, ditulis ke SQLite, lalu dikirim
 /// ke server di latar belakang. Pengurangan stok yang sah terjadi di server
 /// (record_sale); sebelum itu, stok efektif lokal sudah memperhitungkannya.
@@ -24,16 +24,14 @@ class SaleService {
   static final SaleService instance = SaleService._();
 
   /// Mencatat penjualan satu produk. Melempar [SaleException] bila ditolak
-  /// (bukan internal, jumlah tidak valid, produk tidak ada, stok kurang).
+  /// (belum login, jumlah tidak valid, produk tidak ada, stok kurang).
   Future<SaleModel> record({
     required String productId,
     required int qty,
   }) async {
     final user = AuthService.instance.user;
-    if (user == null || !user.isInternal) {
-      throw const SaleException(
-        'Hanya User internal yang dapat mencatat penjualan.',
-      );
+    if (user == null) {
+      throw const SaleException('Sesi berakhir. Silakan login kembali.');
     }
     if (qty <= 0) throw const SaleException('Jumlah harus lebih dari 0.');
 
