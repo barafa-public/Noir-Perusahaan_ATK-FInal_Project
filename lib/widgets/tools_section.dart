@@ -8,6 +8,7 @@ import '../screens/tools/sensor_screen.dart';
 
 import '../screens/tools/blockchain_screen.dart';
 import '../screens/tools/ai_chat_screen.dart';
+import '../screens/tools/game_screen.dart';
 
 class _Tool {
   final String label;
@@ -55,6 +56,12 @@ final List<_Tool> _tools = [
     'Tanya soal stok',
     Icons.smart_toy_rounded,
     (_) => const AiChatScreen(),
+  ),
+  _Tool(
+    'Mini Game',
+    'Tebak harga ATK',
+    Icons.sports_esports_rounded,
+    (_) => const GameScreen(),
   ),
 ];
 
