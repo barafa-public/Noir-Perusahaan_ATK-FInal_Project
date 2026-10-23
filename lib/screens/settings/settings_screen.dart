@@ -4,6 +4,9 @@ import '../../core/constants/app_colors.dart';
 import '../../services/money_service.dart';
 import 'currency_settings_screen.dart';
 
+import '../../services/time_service.dart';
+import 'time_settings_screen.dart';
+
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
 
@@ -27,7 +30,18 @@ class SettingsScreen extends StatelessWidget {
               ),
             ),
           ),
-          // Menu Zona Waktu akan ditambahkan di sini pada tahap berikutnya.
+          const SizedBox(height: 12),
+          ValueListenableBuilder<AppZone>(
+            valueListenable: TimeService.instance.displayZone,
+            builder: (context, zone, _) => _SettingTile(
+              icon: Icons.schedule_rounded,
+              title: 'Zona Waktu',
+              subtitle: 'Waktu ditampilkan: ${TimeService.zoneName(zone)}',
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const TimeSettingsScreen()),
+              ),
+            ),
+          ),
         ],
       ),
     );

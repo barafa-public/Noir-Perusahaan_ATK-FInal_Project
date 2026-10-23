@@ -108,7 +108,8 @@ class _SaleFormScreenState extends State<SaleFormScreen> {
         SnackBar(
           content: Text(
             'Penjualan tercatat: ${sale.productName} × ${sale.qty} '
-            '(${Formatters.rupiah(sale.total)}).',
+            '(${Formatters.rupiah(sale.total)}) · '
+            '${Formatters.dateTime(sale.soldAt)}.',
           ),
         ),
       );
@@ -146,10 +147,7 @@ class _SaleFormScreenState extends State<SaleFormScreen> {
         final p = _products[i];
         return Opacity(
           opacity: p.stock <= 0 ? 0.5 : 1,
-          child: ProductCard(
-            product: p,
-            onTap: () => _select(p),
-          ),
+          child: ProductCard(product: p, onTap: () => _select(p)),
         );
       },
     );
@@ -267,8 +265,9 @@ class _SaleFormScreenState extends State<SaleFormScreen> {
           Expanded(child: _buildList()),
         ],
       ),
-      bottomNavigationBar:
-          selected == null ? null : _buildSelectedPanel(selected),
+      bottomNavigationBar: selected == null
+          ? null
+          : _buildSelectedPanel(selected),
     );
   }
 }

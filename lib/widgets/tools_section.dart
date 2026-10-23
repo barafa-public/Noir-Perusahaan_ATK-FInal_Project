@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../core/constants/app_colors.dart';
 import '../screens/tools/location_screen.dart';
-import '../screens/tools/time_screen.dart';
 import '../screens/tools/sensor_screen.dart';
 
 import '../screens/tools/blockchain_screen.dart';
@@ -20,12 +19,6 @@ class _Tool {
 
 /// Daftar fitur pendukung. Batch berikutnya cukup menambah satu entri di sini.
 final List<_Tool> _tools = [
-  _Tool(
-    'Waktu',
-    'WIB, WITA, WIT, London',
-    Icons.public_rounded,
-    (_) => const TimeScreen(),
-  ),
   _Tool(
     'Lokasi',
     'Jarak ke toko',

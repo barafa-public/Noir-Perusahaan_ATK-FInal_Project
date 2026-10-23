@@ -6,11 +6,13 @@ import '../../models/sale_model.dart';
 import '../../services/db_helper.dart';
 import '../../services/sale_service.dart';
 import '../../services/sync_service.dart';
-import '../../widgets/empty_state.dart';
 import '../../services/time_service.dart';
+import '../../widgets/empty_state.dart';
+import '../settings/time_settings_screen.dart';
 
 /// Riwayat penjualan dari SQLite: milik perangkat ini (termasuk yang belum
 /// terkirim) dan penjualan perangkat lain yang sudah ditarik dari server.
+/// Dikelompokkan per hari pada zona waktu pilihan pengguna.
 class SalesHistoryScreen extends StatefulWidget {
   const SalesHistoryScreen({super.key});
 
@@ -28,7 +30,7 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
   int _rejected = 0;
   ({int count, int total}) _today = (count: 0, total: 0);
 
-    @override
+  @override
   void initState() {
     super.initState();
     SyncService.instance.salesChanged.addListener(_load);
@@ -46,7 +48,6 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
 
   Future<void> _load() async {
     final db = DbHelper.instance;
-    final now = DateTime.now();
     final startOfDay = SaleModel.normalizeIso(
       TimeService.startOfDayUtc(
         TimeService.instance.displayZone.value,
@@ -93,13 +94,61 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
     }
   }
 
+  // ------------------------------------------------------------------
+  // Pengelompokan per hari
+  // ------------------------------------------------------------------
+
+  String _dayLabel(DateTime wall, DateTime nowWall) {
+    final d = DateTime.utc(wall.year, wall.month, wall.day);
+    final n = DateTime.utc(nowWall.year, nowWall.month, nowWall.day);
+    final diff = n.difference(d).inDays;
+    final date = TimeService.formatDate(wall);
+    if (diff == 0) return 'Hari ini · $date';
+    if (diff == 1) return 'Kemarin · $date';
+    return date;
+  }
+
+  /// Daftar campuran: String (judul hari) dan SaleModel.
+  List<Object> _rows() {
+    final zone = TimeService.instance.displayZone.value;
+    final nowWall = TimeService.toZone(DateTime.now().toUtc(), zone);
+    final rows = <Object>[];
+    String? last;
+    for (final s in _sales) {
+      final utc = DateTime.tryParse(s.soldAt)?.toUtc();
+      final label = utc == null
+          ? '-'
+          : _dayLabel(TimeService.toZone(utc, zone), nowWall);
+      if (label != last) {
+        rows.add(label);
+        last = label;
+      }
+      rows.add(s);
+    }
+    return rows;
+  }
+
+  /// "12.27 WITA"
+  String _timeText(String iso) {
+    final utc = DateTime.tryParse(iso)?.toUtc();
+    if (utc == null) return '-';
+    final zone = TimeService.instance.displayZone.value;
+    return '${TimeService.formatHm(TimeService.toZone(utc, zone))} '
+        '${TimeService.abbreviation(zone, utc)}';
+  }
+
+  // ------------------------------------------------------------------
+  // Rincian transaksi (termasuk konversi ke semua zona)
+  // ------------------------------------------------------------------
+
   Future<void> _onTapSale(SaleModel s) async {
-    if (!s.isRejected) return;
+    final current = TimeService.instance.displayZone.value;
     final action = await showModalBottomSheet<String>(
       context: context,
       backgroundColor: AppColors.surface,
+      isScrollControlled: true,
       builder: (ctx) => SafeArea(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -112,35 +161,81 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
                   fontWeight: FontWeight.w800,
                 ),
               ),
-              const SizedBox(height: 6),
-              Text(
-                'Ditolak server: ${s.syncError}',
-                style: const TextStyle(color: AppColors.error),
-              ),
               const SizedBox(height: 4),
-              const Text(
-                'Stok tidak berkurang untuk penjualan ini.',
-                style: TextStyle(color: AppColors.textSecondary),
+              Text(
+                '${s.qty} × ${Formatters.rupiah(s.unitPrice)} = '
+                '${Formatters.rupiah(s.total)}',
+                style: const TextStyle(color: AppColors.textSecondary),
               ),
-              const SizedBox(height: 8),
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: const Icon(
-                  Icons.refresh_rounded,
+              const SizedBox(height: 16),
+              const Text(
+                'Waktu input',
+                style: TextStyle(
+                  fontWeight: FontWeight.w700,
                   color: AppColors.yellow,
                 ),
-                title: const Text('Kirim ulang'),
-                onTap: () => Navigator.of(ctx).pop('retry'),
               ),
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: const Icon(
-                  Icons.delete_outline_rounded,
-                  color: AppColors.error,
+              const SizedBox(height: 8),
+              for (final z in AppZone.values)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 5),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          TimeService.zoneName(z),
+                          style: TextStyle(
+                            fontWeight: z == current
+                                ? FontWeight.w800
+                                : FontWeight.w400,
+                            color: z == current
+                                ? AppColors.yellow
+                                : AppColors.textSecondary,
+                          ),
+                        ),
+                      ),
+                      Text(
+                        TimeService.instance.formatIso(s.soldAt, zone: z),
+                        style: TextStyle(
+                          fontWeight: z == current
+                              ? FontWeight.w800
+                              : FontWeight.w400,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-                title: const Text('Hapus dari perangkat'),
-                onTap: () => Navigator.of(ctx).pop('delete'),
-              ),
+              if (s.isRejected) ...[
+                const Divider(height: 28),
+                Text(
+                  'Ditolak server: ${s.syncError}',
+                  style: const TextStyle(color: AppColors.error),
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  'Stok tidak berkurang untuk penjualan ini.',
+                  style: TextStyle(color: AppColors.textSecondary),
+                ),
+                const SizedBox(height: 8),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(
+                    Icons.refresh_rounded,
+                    color: AppColors.yellow,
+                  ),
+                  title: const Text('Kirim ulang'),
+                  onTap: () => Navigator.of(ctx).pop('retry'),
+                ),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(
+                    Icons.delete_outline_rounded,
+                    color: AppColors.error,
+                  ),
+                  title: const Text('Hapus dari perangkat'),
+                  onTap: () => Navigator.of(ctx).pop('delete'),
+                ),
+              ],
             ],
           ),
         ),
@@ -153,8 +248,13 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
     }
   }
 
+  // ------------------------------------------------------------------
+  // Tampilan
+  // ------------------------------------------------------------------
+
   @override
   Widget build(BuildContext context) {
+    final rows = _rows();
     return Scaffold(
       appBar: AppBar(title: const Text('Riwayat Penjualan')),
       body: !_loaded
@@ -183,20 +283,24 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
                   : ListView.builder(
                       physics: const AlwaysScrollableScrollPhysics(),
                       padding: const EdgeInsets.all(16),
-                      itemCount: _sales.length + 2 + (_hasMore ? 1 : 0),
+                      itemCount: rows.length + 2 + (_hasMore ? 1 : 0),
                       itemBuilder: (context, i) {
                         if (i == 0) return _buildHeader();
                         if (i == 1) return _buildNotices();
                         final idx = i - 2;
-                        if (idx == _sales.length) {
+                        if (idx == rows.length) {
                           return TextButton(
                             onPressed: _loadMore,
                             child: const Text('Muat lebih banyak'),
                           );
                         }
+                        final row = rows[idx];
+                        if (row is String) return _DayHeader(label: row);
+                        final sale = row as SaleModel;
                         return _SaleTile(
-                          sale: _sales[idx],
-                          onTap: () => _onTapSale(_sales[idx]),
+                          sale: sale,
+                          timeText: _timeText(sale.soldAt),
+                          onTap: () => _onTapSale(sale),
                         );
                       },
                     ),
@@ -205,35 +309,75 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
   }
 
   Widget _buildHeader() {
+    final zone = TimeService.instance.displayZone.value;
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
+      clipBehavior: Clip.antiAlias,
       child: Padding(
         padding: const EdgeInsets.all(16),
-        child: Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Penjualan hari ini',
-                    style: TextStyle(color: AppColors.textSecondary),
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Penjualan hari ini',
+                        style: TextStyle(color: AppColors.textSecondary),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        Formatters.rupiah(_today.total),
+                        style: const TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.yellow,
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    Formatters.rupiah(_today.total),
-                    style: const TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.yellow,
-                    ),
-                  ),
-                ],
-              ),
+                ),
+                Text(
+                  '${_today.count} transaksi',
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
+              ],
             ),
-            Text(
-              '${_today.count} transaksi',
-              style: const TextStyle(fontWeight: FontWeight.w700),
+            const SizedBox(height: 12),
+            InkWell(
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const TimeSettingsScreen()),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.schedule_rounded,
+                      size: 16,
+                      color: AppColors.textSecondary,
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        'Waktu ditampilkan dalam ${TimeService.zoneName(zone)}',
+                        style: const TextStyle(
+                          fontSize: 12.5,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ),
+                    const Icon(
+                      Icons.chevron_right_rounded,
+                      size: 18,
+                      color: AppColors.textSecondary,
+                    ),
+                  ],
+                ),
+              ),
             ),
           ],
         ),
@@ -260,7 +404,7 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
               color: AppColors.error,
               text:
                   '$_rejected penjualan ditolak server. '
-                  'Ketuk untuk kirim ulang atau hapus.',
+                  'Ketuk untuk melihat rincian, kirim ulang, atau hapus.',
             ),
           ],
         ],
@@ -269,11 +413,35 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
   }
 }
 
+class _DayHeader extends StatelessWidget {
+  final String label;
+  const _DayHeader({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(4, 10, 4, 8),
+      child: Text(
+        label,
+        style: const TextStyle(
+          fontWeight: FontWeight.w800,
+          color: AppColors.textSecondary,
+        ),
+      ),
+    );
+  }
+}
+
 class _SaleTile extends StatelessWidget {
   final SaleModel sale;
+  final String timeText;
   final VoidCallback onTap;
 
-  const _SaleTile({required this.sale, required this.onTap});
+  const _SaleTile({
+    required this.sale,
+    required this.timeText,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -295,7 +463,7 @@ class _SaleTile extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 10),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
-        onTap: s.isRejected ? onTap : null,
+        onTap: onTap,
         child: Padding(
           padding: const EdgeInsets.all(14),
           child: Row(
@@ -318,13 +486,23 @@ class _SaleTile extends StatelessWidget {
                         color: AppColors.textSecondary,
                       ),
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      Formatters.dateTime(s.soldAt),
-                      style: const TextStyle(
-                        fontSize: 12.5,
-                        color: AppColors.textSecondary,
-                      ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.schedule_rounded,
+                          size: 14,
+                          color: AppColors.yellow,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Diinput $timeText',
+                          style: const TextStyle(
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),

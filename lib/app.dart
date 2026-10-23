@@ -7,6 +7,7 @@ import 'screens/auth/login_screen.dart';
 import 'screens/shell/main_shell.dart';
 import 'services/auth_service.dart';
 import 'services/money_service.dart';
+import 'services/time_service.dart';
 
 class NoirApp extends StatefulWidget {
   const NoirApp({super.key});
@@ -20,11 +21,13 @@ class _NoirAppState extends State<NoirApp> {
   void initState() {
     super.initState();
     MoneyService.instance.addListener(_rebuildAll);
+    TimeService.instance.displayZone.addListener(_rebuildAll);
   }
 
   @override
   void dispose() {
     MoneyService.instance.removeListener(_rebuildAll);
+    TimeService.instance.displayZone.removeListener(_rebuildAll);
     super.dispose();
   }
 
