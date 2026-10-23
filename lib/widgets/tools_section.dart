@@ -21,7 +21,7 @@ class _Tool {
 final List<_Tool> _tools = [
   _Tool(
     'Lokasi',
-    'Jarak ke toko',
+    'Jarak ke tujuan',
     Icons.location_on_rounded,
     (_) => const LocationScreen(),
   ),
@@ -92,9 +92,8 @@ class _ToolTile extends StatelessWidget {
       ),
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
-        onTap: () =>
-            Navigator.of(context)
-                .push(MaterialPageRoute(builder: tool.builder)),
+        onTap: () => Navigator.of(context)
+            .push(MaterialPageRoute(builder: tool.builder)),
         child: Padding(
           padding: const EdgeInsets.all(14),
           child: Column(

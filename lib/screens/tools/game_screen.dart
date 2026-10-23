@@ -456,8 +456,9 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
             '${_streak >= 2 ? '  ·  beruntun $_streak' : ''}';
         feedbackColor = AppColors.success;
       } else {
-        feedback = (_picked == -1 ? 'Waktu habis. ' : 'Salah. ') +
-            'Harga sebenarnya ${Formatters.rupiah(q.item.price)}';
+        final prefix = _picked == -1 ? 'Waktu habis. ' : 'Salah. ';
+        feedback =
+            '${prefix}Harga sebenarnya ${Formatters.rupiah(q.item.price)}';
         feedbackColor = AppColors.error;
       }
     }

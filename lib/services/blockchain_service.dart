@@ -48,9 +48,11 @@ class BlockchainService {
     required String? refId,
     required String payload,
     required String prevHash,
-  }) => sha256
-      .convert(utf8.encode('$index|$type|${refId ?? ''}|$payload|$prevHash'))
-      .toString();
+  }) =>
+      sha256
+          .convert(
+              utf8.encode('$index|$type|${refId ?? ''}|$payload|$prevHash'))
+          .toString();
 
   /// Memeriksa seluruh rantai (dimulai dari genesis, urut naik).
   /// [pinnedIndex] dan [pinnedHash]: blok terakhir yang pernah lolos
@@ -84,13 +86,12 @@ class BlockchainService {
       }
 
       if (i == 0) {
-        final valid =
-            b.type == 'GENESIS' &&
+        final valid = b.type == 'GENESIS' &&
             b.refId == null &&
             b.payload == genesisPayload &&
             b.prevHash == genesisPrevHash;
         if (!valid) {
-          return VerifyResult(
+          return const VerifyResult(
             ok: false,
             checked: 0,
             badIndex: 0,
@@ -183,7 +184,7 @@ class BlockchainService {
   /// Mengunduh rantai terbaru lalu memverifikasinya. Jika lolos, blok
   /// terakhir diingat untuk verifikasi berikutnya.
   Future<({List<BlockModel> blocks, VerifyResult result})>
-  verifyOnline() async {
+      verifyOnline() async {
     final blocks = await fetchAll();
     final pin = await _loadPin();
     final result = verify(

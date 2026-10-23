@@ -166,9 +166,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   color: AppColors.yellow.withValues(alpha: 0.6),
                 ),
               ),
-              child: Text(
+              child: const Text(
                 roleLabel,
-                style: const TextStyle(
+                style: TextStyle(
                   color: AppColors.yellow,
                   fontWeight: FontWeight.w700,
                 ),

@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'dart:math' as math;
+
 enum LocationFailure { serviceOff, denied, deniedForever, timeout, unknown }
 
 class LocationException implements Exception {
@@ -123,6 +125,24 @@ class LocationService {
         s.latitude,
         s.longitude,
       );
+
+  /// Jarak garis lurus (rumus haversine) antara dua titik, dalam meter.
+  static double haversineMeters(
+    double lat1,
+    double lng1,
+    double lat2,
+    double lng2,
+  ) {
+    const earthRadius = 6371008.8; // meter
+    double rad(double d) => d * math.pi / 180;
+    final dLat = rad(lat2 - lat1);
+    final dLng = rad(lng2 - lng1);
+    final a = math.pow(math.sin(dLat / 2), 2) +
+        math.cos(rad(lat1)) *
+            math.cos(rad(lat2)) *
+            math.pow(math.sin(dLng / 2), 2);
+    return 2 * earthRadius * math.asin(math.sqrt(a.toDouble()));
+  }
 
   /// 850 -> "850 m"; 12345 -> "12,35 km"
   static String formatDistance(double meters) {

@@ -116,9 +116,8 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
     String? last;
     for (final s in _sales) {
       final utc = DateTime.tryParse(s.soldAt)?.toUtc();
-      final label = utc == null
-          ? '-'
-          : _dayLabel(TimeService.toZone(utc, zone), nowWall);
+      final label =
+          utc == null ? '-' : _dayLabel(TimeService.toZone(utc, zone), nowWall);
       if (label != last) {
         rows.add(label);
         last = label;
@@ -197,9 +196,8 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
                       Text(
                         TimeService.instance.formatIso(s.soldAt, zone: z),
                         style: TextStyle(
-                          fontWeight: z == current
-                              ? FontWeight.w800
-                              : FontWeight.w400,
+                          fontWeight:
+                              z == current ? FontWeight.w800 : FontWeight.w400,
                         ),
                       ),
                     ],
@@ -266,9 +264,9 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
               backgroundColor: AppColors.surface,
               onRefresh: _refresh,
               child: _sales.isEmpty
-                  ? CustomScrollView(
-                      physics: const AlwaysScrollableScrollPhysics(),
-                      slivers: const [
+                  ? const CustomScrollView(
+                      physics: AlwaysScrollableScrollPhysics(),
+                      slivers: [
                         SliverFillRemaining(
                           hasScrollBody: false,
                           child: EmptyState(
@@ -394,16 +392,14 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
           if (_pending > 0)
             _Notice(
               color: AppColors.yellow,
-              text:
-                  '$_pending penjualan menunggu dikirim ke server. '
+              text: '$_pending penjualan menunggu dikirim ke server. '
                   'Tarik ke bawah untuk mencoba lagi.',
             ),
           if (_rejected > 0) ...[
             if (_pending > 0) const SizedBox(height: 8),
             _Notice(
               color: AppColors.error,
-              text:
-                  '$_rejected penjualan ditolak server. '
+              text: '$_rejected penjualan ditolak server. '
                   'Ketuk untuk melihat rincian, kirim ulang, atau hapus.',
             ),
           ],
@@ -537,9 +533,8 @@ class _SaleTile extends StatelessWidget {
                       color: s.isRejected
                           ? AppColors.textSecondary
                           : AppColors.yellow,
-                      decoration: s.isRejected
-                          ? TextDecoration.lineThrough
-                          : null,
+                      decoration:
+                          s.isRejected ? TextDecoration.lineThrough : null,
                     ),
                   ),
                 ],

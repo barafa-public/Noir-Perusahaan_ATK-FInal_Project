@@ -75,8 +75,9 @@ class _AiChatScreenState extends State<AiChatScreen> {
   Future<void> _retry() async {
     if (_sending) return;
     setState(() {
-      if (_messages.isNotEmpty && _messages.last.isError)
+      if (_messages.isNotEmpty && _messages.last.isError) {
         _messages.removeLast();
+      }
     });
     await _ask();
   }
