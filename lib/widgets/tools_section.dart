@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../core/constants/app_colors.dart';
-import '../screens/tools/currency_screen.dart';
 import '../screens/tools/location_screen.dart';
 import '../screens/tools/time_screen.dart';
 import '../screens/tools/sensor_screen.dart';
@@ -21,12 +20,6 @@ class _Tool {
 
 /// Daftar fitur pendukung. Batch berikutnya cukup menambah satu entri di sini.
 final List<_Tool> _tools = [
-  _Tool(
-    'Kurs',
-    'IDR, USD, EUR',
-    Icons.currency_exchange_rounded,
-    (_) => const CurrencyScreen(),
-  ),
   _Tool(
     'Waktu',
     'WIB, WITA, WIT, London',
@@ -106,8 +99,9 @@ class _ToolTile extends StatelessWidget {
       ),
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
-        onTap: () => Navigator.of(context)
-            .push(MaterialPageRoute(builder: tool.builder)),
+        onTap: () =>
+            Navigator.of(context)
+                .push(MaterialPageRoute(builder: tool.builder)),
         child: Padding(
           padding: const EdgeInsets.all(14),
           child: Column(

@@ -1,19 +1,19 @@
+import '../../services/money_service.dart';
+import '../../services/currency_service.dart';
 import '../../services/time_service.dart';
 
 class Formatters {
   Formatters._();
 
-  /// 52000 -> "Rp 52.000"
-  static String rupiah(int value) {
-    final digits = value.abs().toString();
-    final grouped = digits.replaceAllMapped(
-      RegExp(r'\B(?=(\d{3})+(?!\d))'),
-      (_) => '.',
-    );
-    return '${value < 0 ? '-' : ''}Rp $grouped';
-  }
+  /// Nilai dalam Rupiah (int) ditampilkan pada mata uang pilihan pengguna.
+  /// 52000 -> "Rp 52.000" (IDR), "US$ 3,25" (USD), dst.
+  /// Nama fungsi dipertahankan agar semua layar yang sudah ada otomatis ikut.
+  static String rupiah(int value) => MoneyService.instance.format(value);
 
-  /// ISO-8601 (UTC) -> "20 Okt 2026, 14.05 WIB" pada zona tampilan
-  /// yang dipilih di layar Konversi Waktu (bawaan WIB).
+  /// Selalu Rupiah, tidak dikonversi. Untuk isian formulir harga.
+  static String idr(int value) =>
+      CurrencyService.format('IDR', value.toDouble());
+
+  /// ISO-8601 (UTC) -> teks pada zona tampilan yang dipilih.
   static String dateTime(String iso) => TimeService.instance.formatIso(iso);
 }

@@ -65,11 +65,11 @@ class TimeService {
   // ------------------------------------------------------------------
 
   static String zoneName(AppZone z) => switch (z) {
-        AppZone.wib => 'WIB (Jakarta)',
-        AppZone.wita => 'WITA (Makassar)',
-        AppZone.wit => 'WIT (Jayapura)',
-        AppZone.london => 'London',
-      };
+    AppZone.wib => 'WIB (Jakarta)',
+    AppZone.wita => 'WITA (Makassar)',
+    AppZone.wit => 'WIT (Jayapura)',
+    AppZone.london => 'London',
+  };
 
   /// Hari Minggu terakhir pada [month] pukul [hourUtc] UTC.
   static DateTime _lastSundayUtc(int year, int month, int hourUtc) {
@@ -90,19 +90,19 @@ class TimeService {
 
   /// Selisih menit dari UTC pada saat [utc].
   static int offsetMinutes(AppZone zone, DateTime utc) => switch (zone) {
-        AppZone.wib => 7 * 60,
-        AppZone.wita => 8 * 60,
-        AppZone.wit => 9 * 60,
-        AppZone.london => _isLondonSummer(utc) ? 60 : 0,
-      };
+    AppZone.wib => 7 * 60,
+    AppZone.wita => 8 * 60,
+    AppZone.wit => 9 * 60,
+    AppZone.london => _isLondonSummer(utc) ? 60 : 0,
+  };
 
   /// Singkatan zona pada saat [utc]: WIB, WITA, WIT, GMT atau BST.
   static String abbreviation(AppZone zone, DateTime utc) => switch (zone) {
-        AppZone.wib => 'WIB',
-        AppZone.wita => 'WITA',
-        AppZone.wit => 'WIT',
-        AppZone.london => _isLondonSummer(utc) ? 'BST' : 'GMT',
-      };
+    AppZone.wib => 'WIB',
+    AppZone.wita => 'WITA',
+    AppZone.wit => 'WIT',
+    AppZone.london => _isLondonSummer(utc) ? 'BST' : 'GMT',
+  };
 
   // ------------------------------------------------------------------
   // Konversi
@@ -118,7 +118,13 @@ class TimeService {
   /// jam mundur diperlakukan sebagai BST (pertama).
   static DateTime toUtc(DateTime wall, AppZone zone) {
     final w = DateTime.utc(
-        wall.year, wall.month, wall.day, wall.hour, wall.minute, wall.second);
+      wall.year,
+      wall.month,
+      wall.day,
+      wall.hour,
+      wall.minute,
+      wall.second,
+    );
     if (zone != AppZone.london) {
       return w.subtract(Duration(minutes: offsetMinutes(zone, w)));
     }
@@ -126,7 +132,7 @@ class TimeService {
     return _isLondonSummer(asBst) ? asBst : w;
   }
 
-    /// Awal hari ini (pukul 00.00) di [zone], dinyatakan dalam UTC.
+  /// Awal hari ini (pukul 00.00) di [zone], dinyatakan dalam UTC.
   static DateTime startOfDayUtc(AppZone zone, DateTime nowUtc) {
     final wall = toZone(nowUtc, zone);
     return toUtc(DateTime.utc(wall.year, wall.month, wall.day), zone);
@@ -146,6 +152,10 @@ class TimeService {
   /// "21.05.33"
   static String formatClock(DateTime wall) =>
       '${_two(wall.hour)}.${_two(wall.minute)}.${_two(wall.second)}';
+
+  /// "12.27"
+  static String formatHm(DateTime wall) =>
+      '${_two(wall.hour)}.${_two(wall.minute)}';
 
   /// "Rabu, 21 Okt 2026"
   static String formatDate(DateTime wall) =>

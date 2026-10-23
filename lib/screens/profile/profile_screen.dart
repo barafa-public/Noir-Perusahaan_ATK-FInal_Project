@@ -6,6 +6,7 @@ import '../../services/profile_photo_service.dart';
 import '../../widgets/biometric_setting_tile.dart';
 import '../../widgets/logout_dialog.dart';
 import '../../widgets/user_avatar.dart';
+import '../settings/settings_screen.dart';
 
 enum _PhotoAction { gallery, camera, remove }
 
@@ -91,7 +92,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
     const roleLabel = 'Admin';
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Profil')),
+      appBar: AppBar(
+        title: const Text('Profil'),
+        actions: [
+          IconButton(
+            tooltip: 'Pengaturan',
+            icon: const Icon(Icons.settings_rounded),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const SettingsScreen()),
+            ),
+          ),
+        ],
+      ),
       body: ListView(
         padding: const EdgeInsets.all(24),
         children: [

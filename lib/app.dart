@@ -6,9 +6,39 @@ import 'core/utils/navigation.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/shell/main_shell.dart';
 import 'services/auth_service.dart';
+import 'services/money_service.dart';
 
-class NoirApp extends StatelessWidget {
+class NoirApp extends StatefulWidget {
   const NoirApp({super.key});
+
+  @override
+  State<NoirApp> createState() => _NoirAppState();
+}
+
+class _NoirAppState extends State<NoirApp> {
+  @override
+  void initState() {
+    super.initState();
+    MoneyService.instance.addListener(_rebuildAll);
+  }
+
+  @override
+  void dispose() {
+    MoneyService.instance.removeListener(_rebuildAll);
+    super.dispose();
+  }
+
+  /// Membangun ulang semua widget (state dan navigasi tetap), agar semua
+  /// teks uang di layar yang sedang terbuka ikut berganti mata uang.
+  void _rebuildAll() {
+    if (!mounted) return;
+    void visit(Element element) {
+      element.markNeedsBuild();
+      element.visitChildren(visit);
+    }
+
+    (context as Element).visitChildren(visit);
+  }
 
   @override
   Widget build(BuildContext context) {
