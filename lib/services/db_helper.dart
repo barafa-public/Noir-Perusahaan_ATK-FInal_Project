@@ -409,6 +409,39 @@ class DbHelper {
     return db.query('exchange_rates', where: 'base = ?', whereArgs: [base]);
   }
 
+  // ===================================================================
+  // Data untuk prediksi stok
+  // ===================================================================
+
+  /// (produk, waktu, jumlah) penjualan sejak [isoUtc], tanpa yang ditolak server.
+  Future<List<({String productId, String soldAt, int qty})>>
+      getSaleQuantitiesSince(String isoUtc) async {
+    final db = await database;
+    final rows = await db.rawQuery(
+      'SELECT product_id, sold_at, qty FROM sales '
+      'WHERE sold_at >= ? AND sync_error IS NULL',
+      [isoUtc],
+    );
+    return rows
+        .map(
+          (r) => (
+            productId: r['product_id'] as String,
+            soldAt: r['sold_at'] as String,
+            qty: r['qty'] as int,
+          ),
+        )
+        .toList();
+  }
+
+  /// Waktu penjualan paling awal (tanpa yang ditolak), atau null jika kosong.
+  Future<String?> getFirstSaleAt() async {
+    final db = await database;
+    final r = await db.rawQuery(
+      'SELECT MIN(sold_at) AS m FROM sales WHERE sync_error IS NULL',
+    );
+    return r.first['m'] as String?;
+  }
+
   // Skema dari sqlite_schema.sql
   static const List<String> _schema = [
     '''
