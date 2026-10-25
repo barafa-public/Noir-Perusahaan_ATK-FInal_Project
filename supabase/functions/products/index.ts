@@ -6,6 +6,7 @@ const COLUMNS =
 const MAX_LIMIT = 500;
 const MAX_PRICE = 1_000_000_000;
 const MAX_STOCK = 1_000_000;
+const MAX_ADD = 10_000;
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const SKU_RE = /^[A-Za-z0-9._-]{2,30}$/;
@@ -220,6 +221,50 @@ async function update(req: Request, id: string): Promise<Response> {
   return json({ product: data });
 }
 
+// POST /products/<id>/stock  { qty }
+// Menjumlahkan stok secara atomik. Hanya role internal.
+async function addStock(req: Request, id: string): Promise<Response> {
+  const user = await authenticate(req, ["internal"]);
+  if (isResponse(user)) return user;
+
+  if (!UUID_RE.test(id)) {
+    return errorResponse("Produk tidak ditemukan", 404, "PRODUCT_NOT_FOUND");
+  }
+
+  const body = await readBody(req);
+  if (!body) return errorResponse("Body harus berupa JSON", 400);
+
+  const qty = Number(body.qty);
+  if (!Number.isInteger(qty) || qty <= 0 || qty > MAX_ADD) {
+    return invalid("Jumlah tidak valid", "INVALID_QTY");
+  }
+
+  const { data, error } = await admin.rpc("adjust_stock", {
+    p_product_id: id,
+    p_delta: qty,
+  });
+
+  if (error) {
+    const msg = error.message ?? "";
+    if (msg.startsWith("PRODUCT_NOT_FOUND")) {
+      return errorResponse("Produk tidak ditemukan", 404, "PRODUCT_NOT_FOUND");
+    }
+    if (msg.startsWith("STOCK_OUT_OF_RANGE")) {
+      return invalid("Stok melebihi batas yang diizinkan", "STOCK_LIMIT");
+    }
+    if (msg.startsWith("INVALID_QTY")) {
+      return invalid("Jumlah tidak valid", "INVALID_QTY");
+    }
+    console.error("adjust_stock error", error);
+    return errorResponse("Gagal menambah stok", 500);
+  }
+
+  const row = data as Record<string, unknown>;
+  const product: Record<string, unknown> = {};
+  for (const k of COLUMNS.split(", ")) product[k] = row[k];
+  return json({ product });
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -228,10 +273,12 @@ Deno.serve(async (req) => {
   try {
     const segs = new URL(req.url).pathname.split("/").filter(Boolean);
     const at = segs.lastIndexOf("products");
-    const id = at >= 0 ? segs[at + 1] : undefined;
+        const id = at >= 0 ? segs[at + 1] : undefined;
+    const sub = at >= 0 ? segs[at + 2] : undefined;
 
     if (req.method === "GET") return await list(req);
     if (req.method === "POST") {
+      if (id && sub === "stock") return await addStock(req, id);
       return id ? await update(req, id) : await create(req);
     }
     return errorResponse("Metode tidak didukung", 405);

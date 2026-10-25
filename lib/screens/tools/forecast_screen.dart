@@ -6,6 +6,8 @@ import '../../services/sync_service.dart';
 import '../../services/time_service.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/error_view.dart';
+import '../../services/product_service.dart';
+import '../../widgets/add_stock_sheet.dart';
 
 class ForecastScreen extends StatefulWidget {
   const ForecastScreen({super.key});
@@ -27,6 +29,7 @@ class _ForecastScreenState extends State<ForecastScreen> {
     super.initState();
     SyncService.instance.salesChanged.addListener(_load);
     TimeService.instance.displayZone.addListener(_load);
+    ProductService.instance.changes.addListener(_load);
     _load();
   }
 
@@ -34,6 +37,7 @@ class _ForecastScreenState extends State<ForecastScreen> {
   void dispose() {
     SyncService.instance.salesChanged.removeListener(_load);
     TimeService.instance.displayZone.removeListener(_load);
+    ProductService.instance.changes.removeListener(_load);
     super.dispose();
   }
 
@@ -398,6 +402,21 @@ class _ForecastScreenState extends State<ForecastScreen> {
                   '− stok saat ini = ${f.restockQty} unit.',
                   style: const TextStyle(height: 1.5),
                 ),
+              if (f.restockQty > 0) ...[
+                const SizedBox(height: 16),
+                FilledButton.icon(
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    showAddStockSheet(
+                      context,
+                      f.product,
+                      initialQty: f.restockQty,
+                    );
+                  },
+                  icon: const Icon(Icons.add_box_rounded),
+                  label: Text('Tambah stok (saran ${f.restockQty})'),
+                ),
+              ],
             ],
           ),
         ),

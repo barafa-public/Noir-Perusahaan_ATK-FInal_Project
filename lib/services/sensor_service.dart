@@ -81,6 +81,51 @@ class ShakeDetector {
   }
 }
 
+/// Mendeteksi putaran HP seperti memutar setir (sumbu Z gyroscope, rad/s).
+/// Searah jarum jam = +1, berlawanan = -1, selain itu 0.
+///
+/// Satu putaran cepat melewati [threshold] dihitung satu langkah. Detektor
+/// baru siap lagi setelah kecepatan turun di bawah [release] (putaran
+/// berhenti), dan ada jeda [lockout] antar-langkah supaya gerakan kembali
+/// ke posisi semula tidak dihitung sebagai langkah berlawanan.
+class TwistDetector {
+  final double threshold;
+  final double release;
+  final Duration lockout;
+
+  TwistDetector({
+    this.threshold = 2.0,
+    this.release = 0.7,
+    this.lockout = const Duration(milliseconds: 450),
+  });
+
+  bool _armed = true;
+  DateTime? _last;
+
+  /// [rate]: kecepatan sudut sumbu Z dalam rad/s. Pada konvensi Android,
+  /// nilai negatif berarti searah jarum jam jika HP dilihat dari depan.
+  int onSample(double rate, DateTime now) {
+    final a = rate.abs();
+    if (a < release) {
+      _armed = true;
+      return 0;
+    }
+    if (!_armed || a < threshold) return 0;
+
+    final last = _last;
+    if (last != null && now.difference(last) < lockout) return 0;
+
+    _armed = false;
+    _last = now;
+    return rate < 0 ? 1 : -1;
+  }
+
+  void reset() {
+    _armed = true;
+    _last = null;
+  }
+}
+
 /// Membaca accelerometer dan gyroscope. Satu instance per layar:
 /// panggil [start] saat layar tampil dan [dispose] saat ditutup.
 class SensorService {
@@ -94,8 +139,13 @@ class SensorService {
   /// Nonaktifkan untuk mematikan deteksi goyang.
   bool shakeEnabled = true;
 
+  /// Aktifkan untuk mendeteksi putaran HP (aliran [twists]).
+  bool twistEnabled = false;
+
   final ShakeDetector _detector = ShakeDetector();
+  final TwistDetector _twist = TwistDetector();
   final StreamController<void> _shakes = StreamController<void>.broadcast();
+  final StreamController<int> _twists = StreamController<int>.broadcast();
 
   StreamSubscription<AccelerometerEvent>? _accelSub;
   StreamSubscription<GyroscopeEvent>? _gyroSub;
@@ -107,6 +157,9 @@ class SensorService {
   bool _disposed = false;
 
   Stream<void> get shakes => _shakes.stream;
+
+  /// +1 = putar searah jarum jam, -1 = berlawanan.
+  Stream<int> get twists => _twists.stream;
   bool get running => _accelSub != null;
 
   void start() {
@@ -114,6 +167,7 @@ class SensorService {
     accelError.value = null;
     gyroError.value = null;
     _detector.reset();
+    _twist.reset();
 
     _accelSub = accelerometerEventStream(
       samplingPeriod: SensorInterval.gameInterval,
@@ -125,7 +179,7 @@ class SensorService {
     );
 
     _gyroSub = gyroscopeEventStream(
-      samplingPeriod: SensorInterval.uiInterval,
+      samplingPeriod: SensorInterval.gameInterval,
     ).listen(
       _onGyro,
       onError: (Object _) {
@@ -163,6 +217,11 @@ class SensorService {
     final reading = SensorReading(e.x, e.y, e.z, now);
     if (reading.magnitude > _peakGyro) _peakGyro = reading.magnitude;
 
+    if (twistEnabled) {
+      final step = _twist.onSample(e.z, now);
+      if (step != 0 && !_twists.isClosed) _twists.add(step);
+    }
+
     if (now.difference(_lastGyroUi) >= _uiInterval) {
       _lastGyroUi = now;
       gyro.value = reading;
@@ -187,6 +246,7 @@ class SensorService {
     _disposed = true;
     stop();
     _shakes.close();
+    _twists.close();
     accel.dispose();
     gyro.dispose();
     accelError.dispose();

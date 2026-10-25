@@ -7,6 +7,7 @@ import '../../services/db_helper.dart';
 import '../../services/product_service.dart';
 import '../../widgets/empty_state.dart';
 import 'product_form_screen.dart';
+import '../../widgets/add_stock_sheet.dart';
 
 class ProductDetailScreen extends StatefulWidget {
   final String productId;
@@ -50,6 +51,17 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     if (saved != null && mounted) {
       ScaffoldMessenger.of(context)
           .showSnackBar(const SnackBar(content: Text('Perubahan disimpan.')));
+    }
+  }
+
+  Future<void> _addStock(ProductModel p) async {
+    final updated = await showAddStockSheet(context, p);
+    if (updated != null && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Stok ${updated.name}: ${p.stock} → ${updated.stock}.'),
+        ),
+      );
     }
   }
 
@@ -154,6 +166,12 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               ],
             ),
           ),
+        ),
+        const SizedBox(height: 16),
+        FilledButton.icon(
+          onPressed: () => _addStock(p),
+          icon: const Icon(Icons.add_box_rounded),
+          label: const Text('Tambah stok'),
         ),
         const SizedBox(height: 20),
         const Text(

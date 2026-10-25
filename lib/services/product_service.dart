@@ -46,4 +46,19 @@ class ProductService {
     notifyChanged();
     return product;
   }
+
+  /// Menambah stok [qty] unit secara atomik di server (bukan menimpa).
+  /// Wajib online; hasil resmi dari server ditulis ke cache SQLite.
+  /// Melempar [ApiException] bila gagal.
+  Future<ProductModel> addStock(String productId, int qty) async {
+    final res = await ApiClient.instance.post(
+      '/products/$productId/stock',
+      body: {'qty': qty},
+    );
+    final product =
+        ProductModel.fromJson(res['product'] as Map<String, dynamic>);
+    await DbHelper.instance.applyProductChanges([product]);
+    notifyChanged();
+    return product;
+  }
 }
