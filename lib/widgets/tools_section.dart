@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../core/constants/app_colors.dart';
 import '../screens/tools/location_screen.dart';
-import '../screens/tools/sensor_screen.dart';
 
 import '../screens/tools/blockchain_screen.dart';
 import '../screens/tools/ai_chat_screen.dart';
@@ -25,12 +24,6 @@ final List<_Tool> _tools = [
     'Jarak ke tujuan',
     Icons.location_on_rounded,
     (_) => const LocationScreen(),
-  ),
-  _Tool(
-    'Sensor',
-    'Accelerometer, gyroscope',
-    Icons.sensors_rounded,
-    (_) => const SensorScreen(),
   ),
   _Tool(
     'Blockchain',
